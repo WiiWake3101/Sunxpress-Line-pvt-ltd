@@ -5,12 +5,58 @@ import Footer from "@/components/footer";
 import Link from "next/link";
 
 export default function ContactPage() {
-  const [formData, setFormData] = useState({ name: "", email: "", phone: "", subject: "", message: "" });
+  const [formData, setFormData] = useState({
+    name: "", email: "", phone: "", subject: "", pol: "", pod: "",
+    container: "", serviceType: "", cargoType: "", shipmentDate: "",
+    weight: "", shipper: "", consignee: "", specialRequirements: "", message: ""
+  });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [polSearch, setPolSearch] = useState("");
+  const [podSearch, setPodSearch] = useState("");
+  const [showPolDropdown, setShowPolDropdown] = useState(false);
+  const [showPodDropdown, setShowPodDropdown] = useState(false);
+
+  const majorPorts = [
+    "Singapore", "Shanghai", "Rotterdam", "Hamburg", "Dubai",
+    "Hong Kong", "Busan", "Port Said", "Los Angeles", "Long Beach",
+    "Ningbo", "Antwerp", "Qingdao", "Tokyo", "Bangkok",
+    "Kaohsiung", "Tianjin", "Shenzhen", "Jeddah", "Suez",
+    "Port Klang", "Colombo", "Dalian", "Mumbai", "Gothenburg",
+    "Barcelona", "Gdansk", "Valencia", "Penang", "Chennai",
+    "Cochin", "Tuticorin", "Kandla", "Paradip", "Kolkata"
+  ];
+
+  const filteredPorts = (searchTerm) => {
+    return majorPorts
+      .filter(port => port.toLowerCase().includes(searchTerm.toLowerCase()))
+      .sort();
+  };
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handlePolSearch = (e) => {
+    setPolSearch(e.target.value);
+    setShowPolDropdown(true);
+  };
+
+  const handlePodSearch = (e) => {
+    setPodSearch(e.target.value);
+    setShowPodDropdown(true);
+  };
+
+  const selectPort = (port, type) => {
+    if (type === "pol") {
+      setFormData((prev) => ({ ...prev, pol: port }));
+      setPolSearch("");
+      setShowPolDropdown(false);
+    } else {
+      setFormData((prev) => ({ ...prev, pod: port }));
+      setPodSearch("");
+      setShowPodDropdown(false);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -264,7 +310,7 @@ export default function ContactPage() {
                     Thank you for reaching out. Our team will get back to you within 24 hours.
                   </p>
                   <button
-                    onClick={() => { setSubmitted(false); setFormData({ name: "", email: "", phone: "", subject: "", message: "" }); }}
+                    onClick={() => { setSubmitted(false); setFormData({ name: "", email: "", phone: "", subject: "", pol: "", pod: "", container: "", serviceType: "", cargoType: "", shipmentDate: "", weight: "", shipper: "", consignee: "", specialRequirements: "", message: "" }); }}
                     className="mt-6 px-6 py-2.5 text-sm font-semibold text-white rounded-lg hover:opacity-90 transition-all"
                     style={{ background: "linear-gradient(135deg, #437A96 0%, #1A365D 100%)" }}
                   >
@@ -343,17 +389,249 @@ export default function ContactPage() {
                         onFocus={(e) => { e.target.style.borderColor = "#319795"; e.target.style.boxShadow = "0 0 0 3px rgba(49,151,149,0.1)"; }}
                         onBlur={(e) => { e.target.style.borderColor = "#CBD5E0"; e.target.style.boxShadow = "none"; }}
                       >
-                        <option value="" disabled>Select a topic</option>
-                        <option value="Ocean Freight">Ocean Freight</option>
-                        <option value="Bulk Cargo">Bulk Cargo</option>
-                        <option value="Container Shipping">Container Shipping</option>
-                        <option value="Port Logistics">Port Logistics</option>
-                        <option value="Customs Clearance">Customs Clearance</option>
-                        <option value="Cargo Insurance">Cargo Insurance</option>
-                        <option value="Get a Quote">Get a Quote</option>
-                        <option value="Other">Other</option>
+                        <option value="" disabled>Select a service</option>
+                        <option value="Ocean Freight Booking">Ocean Freight Booking (FCL/LCL)</option>
+                        <option value="Bulk Cargo Shipment">Bulk Cargo Shipment</option>
+                        <option value="Customs Clearance">Customs Clearance & Documentation</option>
+                        <option value="Port Logistics">Port Logistics & Handling</option>
+                        <option value="Cargo Consolidation">Cargo Consolidation Service</option>
+                        <option value="Cargo Insurance">Cargo Insurance Inquiry</option>
+                        <option value="Get a Quote">Get a Freight Quote</option>
+                        <option value="Rate Negotiation">Rate Negotiation & Booking</option>
+                        <option value="Other">Other Inquiry</option>
                       </select>
                     </div>
+                  </div>
+
+                  {/* POL + POD */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="relative">
+                      <label className="block text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: "#1A365D" }}>
+                        Port of Loading (POL) <span style={{ color: "#E53E3E" }}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.pol || polSearch}
+                        onChange={handlePolSearch}
+                        onFocus={() => setShowPolDropdown(true)}
+                        placeholder="Search port..."
+                        className="w-full px-4 py-3 rounded-lg border text-sm outline-none transition-all duration-200"
+                        style={{ borderColor: "#CBD5E0", color: "#2D3748", background: "#fff" }}
+                        required
+                      />
+                      {showPolDropdown && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg z-10" style={{ borderColor: "#CBD5E0", maxHeight: "200px", overflowY: "auto" }}>
+                          {filteredPorts(polSearch).map((port) => (
+                            <button
+                              key={port}
+                              type="button"
+                              onClick={() => selectPort(port, "pol")}
+                              className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm"
+                              style={{ color: "#2D3748" }}
+                            >
+                              {port}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <label className="block text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: "#1A365D" }}>
+                        Port of Discharge (POD) <span style={{ color: "#E53E3E" }}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.pod || podSearch}
+                        onChange={handlePodSearch}
+                        onFocus={() => setShowPodDropdown(true)}
+                        placeholder="Search port..."
+                        className="w-full px-4 py-3 rounded-lg border text-sm outline-none transition-all duration-200"
+                        style={{ borderColor: "#CBD5E0", color: "#2D3748", background: "#fff" }}
+                        required
+                      />
+                      {showPodDropdown && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg z-10" style={{ borderColor: "#CBD5E0", maxHeight: "200px", overflowY: "auto" }}>
+                          {filteredPorts(podSearch).map((port) => (
+                            <button
+                              key={port}
+                              type="button"
+                              onClick={() => selectPort(port, "pod")}
+                              className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm"
+                              style={{ color: "#2D3748" }}
+                            >
+                              {port}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Container + Service Type + Cargo Type */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: "#1A365D" }}>
+                        Container Type <span style={{ color: "#E53E3E" }}>*</span>
+                      </label>
+                      <select
+                        name="container"
+                        value={formData.container}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 rounded-lg border text-sm outline-none transition-all duration-200 appearance-none"
+                        style={{ borderColor: "#CBD5E0", color: formData.container ? "#2D3748" : "#A0AEC0", background: "#fff" }}
+                        onFocus={(e) => { e.target.style.borderColor = "#319795"; e.target.style.boxShadow = "0 0 0 3px rgba(49,151,149,0.1)"; }}
+                        onBlur={(e) => { e.target.style.borderColor = "#CBD5E0"; e.target.style.boxShadow = "none"; }}
+                        required
+                      >
+                        <option value="">Select container type</option>
+                        <option value="20ft Standard">20ft Standard</option>
+                        <option value="40ft Standard">40ft Standard</option>
+                        <option value="40ft High Cube">40ft High Cube</option>
+                        <option value="45ft High Cube">45ft High Cube</option>
+                        <option value="Reefer">Reefer</option>
+                        <option value="Flat Rack">Flat Rack</option>
+                        <option value="Open Top">Open Top</option>
+                        <option value="Bulk/Tank">Bulk/Tank</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: "#1A365D" }}>
+                        Service Type <span style={{ color: "#E53E3E" }}>*</span>
+                      </label>
+                      <select
+                        name="serviceType"
+                        value={formData.serviceType}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 rounded-lg border text-sm outline-none transition-all duration-200 appearance-none"
+                        style={{ borderColor: "#CBD5E0", color: formData.serviceType ? "#2D3748" : "#A0AEC0", background: "#fff" }}
+                        onFocus={(e) => { e.target.style.borderColor = "#319795"; e.target.style.boxShadow = "0 0 0 3px rgba(49,151,149,0.1)"; }}
+                        onBlur={(e) => { e.target.style.borderColor = "#CBD5E0"; e.target.style.boxShadow = "none"; }}
+                        required
+                      >
+                        <option value="">Select service</option>
+                        <option value="FCL">FCL (Full Container Load)</option>
+                        <option value="LCL">LCL (Less than Container Load)</option>
+                        <option value="CFS">CFS (Container Freight Station)</option>
+                        <option value="Consolidation">Consolidation Service</option>
+                        <option value="Breakbulk">Breakbulk / General Cargo</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: "#1A365D" }}>
+                        Cargo Type <span style={{ color: "#E53E3E" }}>*</span>
+                      </label>
+                      <select
+                        name="cargoType"
+                        value={formData.cargoType}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 rounded-lg border text-sm outline-none transition-all duration-200 appearance-none"
+                        style={{ borderColor: "#CBD5E0", color: formData.cargoType ? "#2D3748" : "#A0AEC0", background: "#fff" }}
+                        onFocus={(e) => { e.target.style.borderColor = "#319795"; e.target.style.boxShadow = "0 0 0 3px rgba(49,151,149,0.1)"; }}
+                        onBlur={(e) => { e.target.style.borderColor = "#CBD5E0"; e.target.style.boxShadow = "none"; }}
+                        required
+                      >
+                        <option value="">Select cargo type</option>
+                        <option value="General Cargo">General Cargo</option>
+                        <option value="Breakbulk">Breakbulk</option>
+                        <option value="Heavy Lift">Heavy Lift</option>
+                        <option value="Project Cargo">Project Cargo</option>
+                        <option value="RoRo">RoRo (Roll-on/Roll-off)</option>
+                        <option value="Perishable">Perishable</option>
+                        <option value="Hazardous">Hazardous</option>
+                        <option value="Dry Bulk">Dry Bulk</option>
+                        <option value="Liquid Bulk">Liquid Bulk</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Departure Date + Weight */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: "#1A365D" }}>
+                        When Do You Need to Ship?
+                      </label>
+                      <input
+                        type="date"
+                        name="shipmentDate"
+                        value={formData.shipmentDate}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 rounded-lg border text-sm outline-none transition-all duration-200"
+                        style={{ borderColor: "#CBD5E0", color: "#2D3748", background: "#fff" }}
+                        onFocus={(e) => { e.target.style.borderColor = "#319795"; e.target.style.boxShadow = "0 0 0 3px rgba(49,151,149,0.1)"; }}
+                        onBlur={(e) => { e.target.style.borderColor = "#CBD5E0"; e.target.style.boxShadow = "none"; }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: "#1A365D" }}>
+                        Weight / Quantity <span style={{ color: "#E53E3E" }}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="weight"
+                        value={formData.weight}
+                        onChange={handleChange}
+                        placeholder="e.g., 50 MT or 100 boxes"
+                        className="w-full px-4 py-3 rounded-lg border text-sm outline-none transition-all duration-200"
+                        style={{ borderColor: "#CBD5E0", color: "#2D3748", background: "#fff" }}
+                        onFocus={(e) => { e.target.style.borderColor = "#319795"; e.target.style.boxShadow = "0 0 0 3px rgba(49,151,149,0.1)"; }}
+                        onBlur={(e) => { e.target.style.borderColor = "#CBD5E0"; e.target.style.boxShadow = "none"; }}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Shipper + Consignee */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: "#1A365D" }}>
+                        Shipper Name / Company
+                      </label>
+                      <input
+                        type="text"
+                        name="shipper"
+                        value={formData.shipper}
+                        onChange={handleChange}
+                        placeholder="e.g., ABC Manufacturing Co."
+                        className="w-full px-4 py-3 rounded-lg border text-sm outline-none transition-all duration-200"
+                        style={{ borderColor: "#CBD5E0", color: "#2D3748", background: "#fff" }}
+                        onFocus={(e) => { e.target.style.borderColor = "#319795"; e.target.style.boxShadow = "0 0 0 3px rgba(49,151,149,0.1)"; }}
+                        onBlur={(e) => { e.target.style.borderColor = "#CBD5E0"; e.target.style.boxShadow = "none"; }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: "#1A365D" }}>
+                        Consignee Name / Company
+                      </label>
+                      <input
+                        type="text"
+                        name="consignee"
+                        value={formData.consignee}
+                        onChange={handleChange}
+                        placeholder="e.g., XYZ Imports Ltd."
+                        className="w-full px-4 py-3 rounded-lg border text-sm outline-none transition-all duration-200"
+                        style={{ borderColor: "#CBD5E0", color: "#2D3748", background: "#fff" }}
+                        onFocus={(e) => { e.target.style.borderColor = "#319795"; e.target.style.boxShadow = "0 0 0 3px rgba(49,151,149,0.1)"; }}
+                        onBlur={(e) => { e.target.style.borderColor = "#CBD5E0"; e.target.style.boxShadow = "none"; }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Special Requirements */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: "#1A365D" }}>
+                      Special Requirements / Notes
+                    </label>
+                    <input
+                      type="text"
+                      name="specialRequirements"
+                      value={formData.specialRequirements}
+                      onChange={handleChange}
+                      placeholder="e.g., DG cargo, temperature control, insurance needed, urgent delivery, etc."
+                      className="w-full px-4 py-3 rounded-lg border text-sm outline-none transition-all duration-200"
+                      style={{ borderColor: "#CBD5E0", color: "#2D3748", background: "#fff" }}
+                      onFocus={(e) => { e.target.style.borderColor = "#319795"; e.target.style.boxShadow = "0 0 0 3px rgba(49,151,149,0.1)"; }}
+                      onBlur={(e) => { e.target.style.borderColor = "#CBD5E0"; e.target.style.boxShadow = "none"; }}
+                    />
                   </div>
 
                   {/* Message */}

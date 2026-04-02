@@ -66,13 +66,6 @@ const timeline = [
   { year: "2027", title: "Regional Hub", desc: "Vision: become South India's most trusted maritime logistics company with 50+ active port connections." },
 ];
 
-const team = [
-  { name: "Managing Director", role: "Leadership & Strategy", icon: "👔" },
-  { name: "Operations Head", role: "Port & Cargo Ops", icon: "⚓" },
-  { name: "Commercial Manager", role: "Business Development", icon: "📊" },
-  { name: "Compliance Officer", role: "Regulatory & Legal", icon: "📋" },
-];
-
 const values = [
   { icon: "🎯", title: "Precision", desc: "Every shipment planned to the detail. No guesswork, no shortcuts." },
   { icon: "🤝", title: "Trust", desc: "Relationships built on transparency, fair pricing and honest communication." },
@@ -124,22 +117,55 @@ export default function AboutPage() {
 
             {/* Stats card */}
             <FadeUp delay={150} className="flex-1 w-full">
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { value: "50", suffix: "+", label: "Ports Served", bg: "linear-gradient(135deg,#1A365D,#2C5282)" },
-                  { value: "200", suffix: "+", label: "Shipments", bg: "white", dark: false },
-                  { value: "15", suffix: "+", label: "Trade Routes", bg: "white", dark: false },
-                  { value: "100", suffix: "%", label: "On-Time Rate", bg: "linear-gradient(135deg,#319795,#2C5282)" },
-                ].map((s, i) => (
-                  <div key={s.label} className="rounded-2xl p-6 text-center relative overflow-hidden"
-                    style={{ background: s.bg, border: !s.bg.includes("gradient") ? "1.5px solid #EDF2F7" : "none", boxShadow: s.bg.includes("gradient") ? "0 16px 40px rgba(26,54,93,0.22)" : "0 4px 16px rgba(0,0,0,0.05)" }}>
-                    <p className="text-4xl font-black" style={{ fontFamily: "'Georgia', serif", color: s.bg.includes("gradient") ? "#A0E9E5" : "#1A365D" }}>
-                      <Counter target={s.value} suffix={s.suffix} />
-                    </p>
-                    <p className="text-xs font-semibold mt-1" style={{ color: s.bg.includes("gradient") ? "rgba(255,255,255,0.55)" : "#718096" }}>{s.label}</p>
-                  </div>
-                ))}
-              </div>
+              {(() => {
+                const statsData = [
+                  { value: "8", suffix: "+", label: "Ports Connected", bg: "linear-gradient(135deg,#1A365D,#2C5282)" },
+                  { value: "35", suffix: "+", label: "Shipments", bg: "white", dark: false },
+                  { value: "6", suffix: "+", label: "Trade Routes", bg: "white", dark: false },
+                ];
+                if (statsData.length === 3) {
+                  return (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        {statsData.slice(0, 2).map((s) => (
+                          <div key={s.label} className="rounded-2xl p-6 text-center relative overflow-hidden"
+                            style={{ background: s.bg, border: !s.bg.includes("gradient") ? "1.5px solid #EDF2F7" : "none", boxShadow: s.bg.includes("gradient") ? "0 16px 40px rgba(26,54,93,0.22)" : "0 4px 16px rgba(0,0,0,0.05)" }}>
+                            <p className="text-4xl font-black" style={{ fontFamily: "'Georgia', serif", color: s.bg.includes("gradient") ? "#A0E9E5" : "#1A365D" }}>
+                              <Counter target={s.value} suffix={s.suffix} />
+                            </p>
+                            <p className="text-xs font-semibold mt-1" style={{ color: s.bg.includes("gradient") ? "rgba(255,255,255,0.55)" : "#718096" }}>{s.label}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex justify-center mt-4">
+                        <div style={{ width: "50%" }}>
+                          <div className="rounded-2xl p-6 text-center relative overflow-hidden"
+                            style={{ background: statsData[2].bg, border: !statsData[2].bg.includes("gradient") ? "1.5px solid #EDF2F7" : "none", boxShadow: statsData[2].bg.includes("gradient") ? "0 16px 40px rgba(26,54,93,0.22)" : "0 4px 16px rgba(0,0,0,0.05)" }}>
+                            <p className="text-4xl font-black" style={{ fontFamily: "'Georgia', serif", color: statsData[2].bg.includes("gradient") ? "#A0E9E5" : "#1A365D" }}>
+                              <Counter target={statsData[2].value} suffix={statsData[2].suffix} />
+                            </p>
+                            <p className="text-xs font-semibold mt-1" style={{ color: statsData[2].bg.includes("gradient") ? "rgba(255,255,255,0.55)" : "#718096" }}>{statsData[2].label}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  );
+                } else {
+                  return (
+                    <div className="grid grid-cols-2 gap-4">
+                      {statsData.map((s) => (
+                        <div key={s.label} className="rounded-2xl p-6 text-center relative overflow-hidden"
+                          style={{ background: s.bg, border: !s.bg.includes("gradient") ? "1.5px solid #EDF2F7" : "none", boxShadow: s.bg.includes("gradient") ? "0 16px 40px rgba(26,54,93,0.22)" : "0 4px 16px rgba(0,0,0,0.05)" }}>
+                          <p className="text-4xl font-black" style={{ fontFamily: "'Georgia', serif", color: s.bg.includes("gradient") ? "#A0E9E5" : "#1A365D" }}>
+                            <Counter target={s.value} suffix={s.suffix} />
+                          </p>
+                          <p className="text-xs font-semibold mt-1" style={{ color: s.bg.includes("gradient") ? "rgba(255,255,255,0.55)" : "#718096" }}>{s.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+              })()}
             </FadeUp>
           </div>
         </div>
@@ -232,44 +258,6 @@ export default function AboutPage() {
                 </FadeUp>
               ))}
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── TEAM ─────────────────────────────────────── */}
-      <section className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <FadeUp>
-            <div className="text-center mb-14">
-              <span className="text-xs font-black tracking-widest uppercase" style={{ color: "#319795" }}>— The Team</span>
-              <h2 className="text-4xl sm:text-5xl font-black mt-3" style={{ color: "#0D1F3C", fontFamily: "'Georgia', serif", letterSpacing: "-0.02em" }}>Leadership</h2>
-              <p className="mt-3 text-base max-w-md mx-auto" style={{ color: "#718096" }}>Seasoned professionals with deep maritime, logistics and regulatory expertise.</p>
-            </div>
-          </FadeUp>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {team.map((t, i) => (
-              <FadeUp key={t.role} delay={i * 80}>
-                <div
-                  className="rounded-2xl overflow-hidden group cursor-default"
-                  style={{
-                    border: "1.5px solid #EDF2F7",
-                    transitionProperty: "transform, box-shadow",
-                    transitionDuration: "280ms",
-                    transitionTimingFunction: "ease",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 20px 48px rgba(26,54,93,0.14)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
-                >
-                  <div className="h-32 flex items-center justify-center text-5xl" style={{ background: "linear-gradient(135deg,#EBF8FF,#E6FFFA)" }}>
-                    {t.icon}
-                  </div>
-                  <div className="p-5">
-                    <p className="font-bold text-sm" style={{ color: "#1A365D" }}>{t.name}</p>
-                    <p className="text-xs mt-0.5" style={{ color: "#319795" }}>{t.role}</p>
-                  </div>
-                </div>
-              </FadeUp>
-            ))}
           </div>
         </div>
       </section>

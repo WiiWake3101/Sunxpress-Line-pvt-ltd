@@ -35,7 +35,7 @@ const services = [
     title: "Ocean Freight",
     tagline: "Global reach. Local expertise.",
     heroColor: "linear-gradient(135deg, #1A365D, #2C5282)",
-    desc: "Our ocean freight service covers Full Container Load (FCL) and Less-than-Container Load (LCL) shipments across all major global trade lanes. We manage the full lifecycle — booking, documentation, customs, and delivery coordination — so you don't have to.",
+    desc: "Our ocean freight service covers Full Container Load (FCL) and Less-than-Container Load (LCL) consolidation and booking across all major global trade lanes. We manage the full lifecycle — booking with vetted vessel operators, documentation, customs, and delivery coordination — so you don't have to.",
     features: [
       "FCL & LCL shipments on all major routes",
       "Real-time cargo tracking & status updates",
@@ -44,7 +44,7 @@ const services = [
       "Competitive freight rate negotiation",
       "Consolidation services for small shippers",
     ],
-    stats: [{ v: "50+", l: "Ports" }, { v: "15+", l: "Routes" }, { v: "24h", l: "Quote" }],
+    stats: [{ v: "8+", l: "Ports" }, { v: "6+", l: "Routes" }, { v: "24h", l: "Quote" }],
   },
   {
     id: "bulk-cargo",
@@ -52,14 +52,14 @@ const services = [
     title: "Bulk Cargo",
     tagline: "Volume handled. Value delivered.",
     heroColor: "linear-gradient(135deg, #2C5282, #319795)",
-    desc: "We specialise in handling dry bulk commodities including coal, grain, fertilizers, minerals and other loose cargo. With dedicated bulk terminal access at Tuticorin, we ensure efficient loading, stowage and safe delivery.",
+    desc: "We specialise in consolidating and booking dry bulk commodities including coal, grain, fertilizers, minerals and other loose cargo. Through our partnerships with terminal operators and vessel lines at Tuticorin Port, we coordinate loading, stowage and safe delivery on selected carrier vessels.",
     features: [
       "Dry bulk: coal, grain, fertilizers, minerals",
-      "Dedicated bulk terminal access at Tuticorin",
-      "Draft survey and cargo inspection",
+      "Terminal coordination at Tuticorin Port",
+      "Draft survey and cargo inspection liaison",
       "Moisture & contamination monitoring",
       "Fumigation and pre-shipment certification",
-      "Chartering and vessel nomination support",
+      "Vessel booking and appointment coordination",
     ],
     stats: [{ v: "12+", l: "Commodities" }, { v: "25K", l: "Max DWT" }, { v: "48h", l: "Turnaround" }],
   },
@@ -69,13 +69,13 @@ const services = [
     title: "Port Logistics",
     tagline: "Precision at every berth.",
     heroColor: "linear-gradient(135deg, #319795, #437A96)",
-    desc: "Our port logistics team manages stevedoring, cargo handling, and inter-terminal transfers at Tuticorin Port. We know every berth, every regulation and every gate process — keeping your cargo moving without unnecessary delays.",
+    desc: "Our port logistics team coordinates stevedoring, cargo handling, and inter-terminal transfers at Tuticorin Port through trusted partner networks. We know every berth, every regulation and every gate process — keeping your cargo moving without unnecessary delays.",
     features: [
-      "Stevedoring & cargo handling operations",
-      "Port agency and vessel husbandry",
+      "Stevedoring coordination with licensed operators",
+      "Port agency facilitation and customs liaison",
       "Pre-berthing & post-departure formalities",
       "CFS (Container Freight Station) coordination",
-      "Inland container depot (ICD) management",
+      "Inland container depot (ICD) booking",
       "Last-mile delivery within Tamil Nadu",
     ],
     stats: [{ v: "#1", l: "Tuti Port" }, { v: "365", l: "Days/Year" }, { v: "<4h", l: "Clearance" }],
@@ -115,21 +115,21 @@ const services = [
     stats: [{ v: "100%", l: "Coverage" }, { v: "<24h", l: "Certificate" }, { v: "₹∞", l: "Insurable" }],
   },
   {
-    id: "route-planning",
-    icon: "🗺️",
-    title: "Route Planning",
-    tagline: "Smarter paths. Lower costs.",
-    heroColor: "linear-gradient(135deg, #2C5282, #437A96)",
-    desc: "Our route optimisation service analyses vessel schedules, port congestion data, fuel surcharges and transit times to recommend the most cost-effective and time-efficient routing for your cargo across the Indian Ocean and beyond.",
+    id: "container-services",
+    icon: "📦",
+    title: "Container Services",
+    tagline: "Containers on demand. Per-day rentals available.",
+    heroColor: "linear-gradient(135deg, #319795, #2C5282)",
+    desc: "We provide comprehensive container solutions with flexible per-day leasing options. Through partnerships with container operators and depots at Tuticorin Port, we ensure containers are available when you need them — with transparent daily rates and real-time availability across all container types.",
     features: [
-      "Multi-carrier schedule comparison",
-      "Port congestion and transit time analysis",
-      "Fuel surcharge (BAF) optimisation",
-      "Transshipment hub evaluation",
-      "CO₂ emission-conscious routing",
-      "Long-term contract route management",
+      "Flexible per-day container leasing & rental rates",
+      "All container types: 20ft, 40ft, HC, Reefer, Flat Rack, Open Top",
+      "Container depot management & instant booking",
+      "Equipment interchange documentation (EIR)",
+      "Container repair & maintenance coordination",
+      "24/7 container availability & real-time tracking",
     ],
-    stats: [{ v: "15+", l: "Routes" }, { v: "30%", l: "Cost Saving" }, { v: "48h", l: "Planning" }],
+    stats: [{ v: "All", l: "Types" }, { v: "Daily", l: "Rates" }, { v: "Tuticorin", l: "Hub" }],
   },
 ];
 
@@ -153,7 +153,7 @@ export default function ServicesPage() {
               Our Services
             </h1>
             <p className="text-lg max-w-xl mx-auto" style={{ color: "rgba(255,255,255,0.65)", lineHeight: "1.8" }}>
-              Six core services. One seamless maritime experience — from the first quote to final delivery.
+              Eight core services. One seamless maritime experience — from the first quote to final delivery.
             </p>
           </FadeUp>
 
