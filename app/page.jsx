@@ -15,9 +15,7 @@ const services = [
   { icon: "🏭", title: "Port Logistics",    desc: "Coordinating stevedoring, cargo handling and terminal operations at Tuticorin Port.", accent: "#2C5282" },
   { icon: "📋", title: "Customs Clearance", desc: "Hassle-free documentation and brokerage ensuring zero-delay clearance every time.", accent: "#437A96" },
   { icon: "🛡️", title: "Cargo Insurance",  desc: "Comprehensive marine insurance protecting your shipments from origin to destination.", accent: "#319795" },
-  { icon: "💰", title: "Live Rates",        desc: "Instant freight rate quotes from multiple carriers with transparent pricing and instant booking.", accent: "#2C5282" },
   { icon: "📦", title: "Container Services", desc: "Container leasing, depot management, and logistics coordination designed for every shipment need.", accent: "#437A96" },
-  { icon: "🗺️", title: "Route Planning",   desc: "Optimizing routing across Indian Ocean trade lanes through multiple vessel operators.", accent: "#319795" },
 ];
 
 const stats = [
