@@ -117,15 +117,27 @@ export default function Home() {
                   Explore Services
                 </a>
               </div>
-
-              {/* Stats grid */}
-              <div className="grid grid-cols-2 gap-3 rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.1)", animation: "fadeSlideUp 0.9s ease 0.4s both" }}>
+              {/* Stats bar */}
+              <div
+                className="rounded-2xl overflow-hidden"
+                style={{
+                  border: "1px solid rgba(160,233,229,0.15)",
+                  background: "rgba(255,255,255,0.05)",
+                  animation: "fadeSlideUp 0.9s ease 0.4s both",
+                  display: "flex",
+                }}
+              >
                 {stats.map((s, i) => (
-                  <div key={s.label} className="px-5 py-4 text-center"
-                    style={{ background: i % 2 === 0 ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.04)" }}>
-                    <div className="text-xl mb-0.5">{s.icon}</div>
-                    <p className="font-black text-xl" style={{ color: "#A0E9E5", fontFamily: "'Georgia', serif" }}>{s.value}</p>
-                    <p className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>{s.label}</p>
+                  <div
+                    key={s.label}
+                    className="flex-1 px-6 py-6 text-center"
+                    style={{
+                      borderLeft: i !== 0 ? "1px solid rgba(160,233,229,0.15)" : "none",
+                    }}
+                  >
+                    <div className="text-2xl mb-2">{s.icon}</div>
+                    <p className="font-black text-2xl" style={{ color: "#A0E9E5", fontFamily: "'Georgia', serif" }}>{s.value}</p>
+                    <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.5)" }}>{s.label}</p>
                   </div>
                 ))}
               </div>
