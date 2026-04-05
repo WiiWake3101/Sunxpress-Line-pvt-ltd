@@ -24,13 +24,6 @@ const stats = [
   { value: "6+",   label: "Trade Routes",    icon: "🗺️" },
 ];
 
-const shippingPartners = [
-  { name: "Maersk",     type: "Global Container",   region: "All Major Routes", color: "#1A365D" },
-  { name: "MSC",        type: "Container & General", region: "Worldwide",        color: "#2C5282" },
-  { name: "CMA CGM",    type: "Container & RoRo",   region: "Europe, Asia",     color: "#319795" },
-  { name: "COSCO",      type: "Bulk & Container",   region: "China Routes",     color: "#437A96" },
-];
-
 const whyUs = [
   { num: "01", title: "Tuticorin Expertise", desc: "Deep-rooted port knowledge giving you an operational edge no newcomer can match." },
   { num: "02", title: "Transparent Pricing", desc: "Detailed quotes upfront — no hidden fees, no surprises at the dock." },
@@ -271,41 +264,73 @@ export default function Home() {
         </div>
       </section>
 
-      {/*  SHIPPING PARTNERS  */}
-      <section id="fleet" className="w-full py-28 bg-white">
+      {/*  NVOCC CONSOLIDATION PROCESS  */}
+      <section id="nvocc" className="w-full py-28 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-16 gap-6">
-            <Reveal direction="left">
-              <span className="text-xs font-black tracking-widest uppercase" style={{ color: "#319795" }}>— Our Partners</span>
-              <h2 className="text-4xl sm:text-5xl font-black mt-3" style={{ color: "#0D1F3C", fontFamily: "'Georgia', serif", letterSpacing: "-0.02em" }}>Industry-Leading<br />Shipping Lines</h2>
-            </Reveal>
-            <Reveal direction="right">
-              <p className="text-base max-w-xs" style={{ color: "#718096", lineHeight: "1.8" }}>We partner with the world's top carriers to deliver containerized cargo, breakbulk, and specialized shipments globally.</p>
-            </Reveal>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {shippingPartners.map((p, i) => (
-              <Reveal key={p.name} delay={i * 100} direction="up">
-                <div className="rounded-2xl overflow-hidden group transition-all duration-300 hover:-translate-y-1 hover:shadow-xl" style={{ border: "1.5px solid #EDF2F7", boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
-                  <div className="h-36 flex items-center justify-center relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${p.color}, ${p.color}CC)` }}>
-                    <div className="absolute inset-0" style={{ backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 10px)" }} />
-                    <svg className="w-20 h-20 relative z-10 group-hover:scale-110 transition-transform duration-300" viewBox="0 0 80 80" fill="none">
-                      <rect x="10" y="45" width="60" height="12" rx="2" fill="rgba(255,255,255,0.25)"/>
-                      <rect x="18" y="30" width="44" height="16" rx="2" fill="rgba(255,255,255,0.2)"/>
-                      <rect x="26" y="20" width="28" height="11" rx="2" fill="rgba(255,255,255,0.18)"/>
-                      <rect x="5"  y="57" width="70" height="6"  rx="2" fill="rgba(255,255,255,0.15)"/>
-                      <path d="M5 63 Q40 70 75 63" stroke="rgba(255,255,255,0.3)" strokeWidth="2" fill="none"/>
-                    </svg>
+          <Reveal direction="up">
+            <div className="text-center mb-16">
+              <span className="text-xs font-black tracking-widest uppercase" style={{ color: "#319795" }}>— How It Works</span>
+              <h2 className="text-4xl sm:text-5xl font-black mt-3" style={{ color: "#0D1F3C", fontFamily: "'Georgia', serif", letterSpacing: "-0.02em" }}>NVOCC Consolidation<br />In 5 Steps</h2>
+              <p className="mt-4 text-base max-w-lg mx-auto" style={{ color: "#718096", lineHeight: "1.8" }}>Our streamlined NVOCC process ensures your cargo reaches global destinations faster and more cost-effectively.</p>
+            </div>
+          </Reveal>
+          <div className="relative">
+            {/* Connector line for desktop */}
+            <div className="hidden lg:block absolute top-1/4 left-0 right-0 h-1" style={{ background: "linear-gradient(90deg, #A0E9E5, transparent)", transform: "translateY(-50%)" }} />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 lg:gap-3">
+              {[
+                { num: "01", icon: "📋", title: "Book", desc: "Submit your shipment details and get an instant quote. No hidden charges." },
+                { num: "02", icon: "📦", title: "Consolidate", desc: "Your cargo joins compatible shipments at our consolidation center." },
+                { num: "03", icon: "⚙️", title: "Load", desc: "Expert handling & documentation. Your goods are secured and tracked." },
+                { num: "04", icon: "🚢", title: "Ship", desc: "Your consolidated container departs on schedule via global shipping lanes." },
+                { num: "05", icon: "✅", title: "Deliver", desc: "Real-time tracking until cargo reaches its final destination safely." },
+              ].map((step, i) => (
+                <Reveal key={step.num} delay={i * 80} direction="up">
+                  <div className="relative group">
+                    {/* Connector dot */}
+                    <div className="hidden lg:flex absolute -top-12 left-1/2 w-8 h-8 rounded-full items-center justify-center transform -translate-x-1/2" style={{ background: "white", border: "3px solid #A0E9E5" }}>
+                      <div className="w-2 h-2 rounded-full" style={{ background: "#A0E9E5" }} />
+                    </div>
+
+                    <div className="rounded-2xl p-8 h-full transition-all duration-300 hover:-translate-y-2 hover:shadow-lg" style={{ background: "white", border: "1.5px solid #EDF2F7", boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+                      {/* Step number background */}
+                      <div className="absolute top-0 right-0 w-24 h-24 opacity-5 rounded-2xl" style={{ background: "#A0E9E5" }} />
+
+                      {/* Step number */}
+                      <p className="text-5xl font-black mb-4 leading-none" style={{ color: "#A0E9E5", fontFamily: "'Georgia', serif", opacity: 0.3 }}>{step.num}</p>
+
+                      {/* Icon */}
+                      <div className="text-4xl mb-4">{step.icon}</div>
+
+                      {/* Title */}
+                      <h3 className="text-xl font-bold mb-3" style={{ color: "#0D1F3C" }}>{step.title}</h3>
+
+                      {/* Description */}
+                      <p className="text-sm" style={{ color: "#718096", lineHeight: "1.7" }}>{step.desc}</p>
+
+                      {/* Hover indicator */}
+                      <div className="mt-5 flex items-center gap-2 text-xs font-semibold transition-opacity duration-300 opacity-0 group-hover:opacity-100" style={{ color: "#319795" }}>
+                        <span>Learn more</span>
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+                      </div>
+                    </div>
                   </div>
-                  <div className="p-5 bg-white">
-                    <span className="text-xs font-black tracking-widest uppercase" style={{ color: p.color }}>{p.type}</span>
-                    <h3 className="text-base font-bold mt-1 mb-2" style={{ color: "#1A365D" }}>{p.name}</h3>
-                    <div className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full" style={{ background: "#F0F4F8", color: "#4A5568" }}>🌍 {p.region}</div>
-                  </div>
-                </div>
-              </Reveal>
-            ))}
+                </Reveal>
+              ))}
+            </div>
           </div>
+
+          {/* Bottom CTA */}
+          <Reveal direction="up">
+            <div className="mt-16 text-center">
+              <a href="#contact" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-sm font-bold transition-all hover:shadow-lg hover:-translate-y-1"
+                style={{ background: "linear-gradient(135deg, #A0E9E5, #71D5D0)", color: "#1A365D", boxShadow: "0 8px 32px rgba(160,233,229,0.25)" }}>
+                Start Your Consolidation
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+              </a>
+            </div>
+          </Reveal>
         </div>
       </section>
 
