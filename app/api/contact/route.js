@@ -175,31 +175,34 @@ export async function POST(request) {
       );
     }
 
-    // 10. Send confirmation emails (non-blocking but with error handling)
-    Promise.all([
-      sendContactAcknowledgment({
-        name: sanitized.name,
-        email: sanitized.email,
-        subject: sanitized.subject,
-        message: sanitized.message,
-      }),
-      sendAdminNotification({
-        name: sanitized.name,
-        email: sanitized.email,
-        phone: sanitized.phone,
-        company: sanitized.company,
-        subject: sanitized.subject,
-        port_of_loading: sanitized.pol,
-        port_of_discharge: sanitized.pod,
-        container_type: sanitized.container,
-        service_type: sanitized.serviceType,
-        cargo_type: sanitized.cargoType,
-        message: sanitized.message,
-      }),
-    ]).catch((err) => {
-      console.error('[CONTACT-API] 🚨 Email Promise failed:', err.message);
-      console.error('[CONTACT-API] Stack trace:', err.stack?.split('\n').slice(0, 3).join('\n'));
-    });
+    // 10. Send confirmation emails (BLOCKING - wait for completion)
+    try {
+      await Promise.all([
+        sendContactAcknowledgment({
+          name: sanitized.name,
+          email: sanitized.email,
+          subject: sanitized.subject,
+          message: sanitized.message,
+        }),
+        sendAdminNotification({
+          name: sanitized.name,
+          email: sanitized.email,
+          phone: sanitized.phone,
+          company: sanitized.company,
+          subject: sanitized.subject,
+          port_of_loading: sanitized.pol,
+          port_of_discharge: sanitized.pod,
+          container_type: sanitized.container,
+          service_type: sanitized.serviceType,
+          cargo_type: sanitized.cargoType,
+          message: sanitized.message,
+        }),
+      ]);
+      console.log('[CONTACT-API] ✅ All emails sent successfully');
+    } catch (emailErr) {
+      console.error('[CONTACT-API] 🚨 Email sending failed:', emailErr.message);
+      // Still return success because message was saved to DB
+    }
 
     // 11. Return success response
     const messageId = data && Array.isArray(data) && data.length > 0 ? data[0].id : 'unknown';

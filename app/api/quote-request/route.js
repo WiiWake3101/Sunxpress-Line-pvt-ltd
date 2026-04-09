@@ -168,31 +168,34 @@ export async function POST(request) {
       );
     }
 
-    // 10. Send confirmation emails (non-blocking but with error handling)
-    Promise.all([
-      sendQuoteConfirmationEmail({
-        name: sanitized.name,
-        email: sanitized.email,
-        service: sanitized.service,
-        pol: sanitized.pol,
-        pod: sanitized.pod,
-        container: sanitized.container,
-      }),
-      sendAdminNotification({
-        name: sanitized.name,
-        email: sanitized.email,
-        phone: sanitized.phone,
-        company: sanitized.company,
-        service_type: sanitized.service,
-        port_of_loading: sanitized.pol,
-        port_of_discharge: sanitized.pod,
-        container_type: sanitized.container,
-        cargo_details: sanitized.cargo_details,
-      }),
-    ]).catch((err) => {
-      console.error('[QUOTE-API] 🚨 Email Promise failed:', err.message);
-      console.error('[QUOTE-API] Stack trace:', err.stack?.split('\n').slice(0, 3).join('\n'));
-    });
+    // 10. Send confirmation emails (BLOCKING - wait for completion)
+    try {
+      await Promise.all([
+        sendQuoteConfirmationEmail({
+          name: sanitized.name,
+          email: sanitized.email,
+          service: sanitized.service,
+          pol: sanitized.pol,
+          pod: sanitized.pod,
+          container: sanitized.container,
+        }),
+        sendAdminNotification({
+          name: sanitized.name,
+          email: sanitized.email,
+          phone: sanitized.phone,
+          company: sanitized.company,
+          service_type: sanitized.service,
+          port_of_loading: sanitized.pol,
+          port_of_discharge: sanitized.pod,
+          container_type: sanitized.container,
+          cargo_details: sanitized.cargo_details,
+        }),
+      ]);
+      console.log('[QUOTE-API] ✅ All emails sent successfully');
+    } catch (emailErr) {
+      console.error('[QUOTE-API] 🚨 Email sending failed:', emailErr.message);
+      // Still return success because quote was saved to DB
+    }
 
     // 11. Return success response
     const quoteId = data && Array.isArray(data) && data.length > 0 ? data[0].id : 'unknown';
