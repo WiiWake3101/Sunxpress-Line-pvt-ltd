@@ -6,7 +6,8 @@ import ServiceCard from "../components/ServiceCard";
 import StatCard from "../components/StatCard";
 import ContainerMarquee from "../components/ContainerMarquee";
 import Reveal from "../components/Reveal";
-import { useState } from "react";
+import SuccessModal from "../components/SuccessModal";
+import { useState, useRef, useEffect } from "react";
 
 /* ─── Data ─── */
 const services = [
@@ -49,6 +50,10 @@ export default function Home() {
   const [podSearch, setPodSearch] = useState("");
   const [showPolDropdown, setShowPolDropdown] = useState(false);
   const [showPodDropdown, setShowPodDropdown] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [successModal, setSuccessModal] = useState({ isOpen: false, email: "" });
+  const [errors, setErrors] = useState({});
+  const recaptchaRef = useRef(null);
 
   const filteredPorts = (searchTerm) => {
     return majorPorts.filter(port => port.toLowerCase().includes(searchTerm.toLowerCase())).sort();
@@ -63,6 +68,78 @@ export default function Home() {
       setQuoteForm((prev) => ({ ...prev, pod: port }));
       setPodSearch("");
       setShowPodDropdown(false);
+    }
+  };
+
+  // Load reCAPTCHA script
+  useEffect(() => {
+    if (!window.grecaptcha) {
+      const script = document.createElement("script");
+      script.src = `https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`;
+      document.head.appendChild(script);
+    }
+  }, []);
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrors({});
+    setLoading(true);
+
+    try {
+      // Get reCAPTCHA token
+      const token = await window.grecaptcha.execute(
+        process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY,
+        { action: "submit_quote" }
+      );
+
+      // Submit to API
+      const response = await fetch("/api/quote-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: quoteForm.name,
+          company: quoteForm.company,
+          email: quoteForm.email,
+          phone: quoteForm.phone,
+          service: quoteForm.service,
+          pol: quoteForm.pol,
+          pod: quoteForm.pod,
+          container: quoteForm.container,
+          cargo: quoteForm.cargo,
+          recaptchaToken: token,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        // Handle validation errors
+        if (data.errors && Array.isArray(data.errors)) {
+          const errorMap = {};
+          data.errors.forEach((err) => {
+            errorMap[err.field] = err.message;
+          });
+          setErrors(errorMap);
+        }
+        alert(data.message || "Failed to submit quote. Please try again.");
+        return;
+      }
+
+      // Show success modal
+      setSuccessModal({ isOpen: true, email: quoteForm.email });
+
+      // Reset form after modal closes
+      setTimeout(() => {
+        setQuoteForm({
+          name: "", company: "", email: "", phone: "", service: "", pol: "", pod: "", container: "", cargo: ""
+        });
+      }, 3000);
+    } catch (error) {
+      console.error("Error:", error);
+      alert("An error occurred. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
   return (
@@ -455,9 +532,9 @@ export default function Home() {
                       onFocus={(e) => { e.target.style.borderColor = "#319795"; e.target.style.boxShadow = "0 0 0 3px rgba(49,151,149,0.1)"; }}
                       onBlur={(e)  => { e.target.style.borderColor = "#E2E8F0"; e.target.style.boxShadow = "none"; }} />
                   </div>
-                  <button type="button" className="w-full py-4 text-sm font-black text-white rounded-xl transition-all hover:opacity-90 hover:-translate-y-px hover:shadow-lg"
+                  <button type="button" onClick={handleSubmit} disabled={loading} className="w-full py-4 text-sm font-black text-white rounded-xl transition-all hover:opacity-90 hover:-translate-y-px hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ background: "linear-gradient(135deg, #437A96 0%, #1A365D 100%)", boxShadow: "0 8px 32px rgba(26,54,93,0.28)", letterSpacing: "0.03em" }}>
-                    Send Request →
+                    {loading ? "Submitting..." : "Send Request →"}
                   </button>
                   <p className="text-center text-xs" style={{ color: "#A0AEC0" }}>We respond within 24 hours · No obligation</p>
                 </div>
@@ -468,6 +545,13 @@ export default function Home() {
       </section>
 
       <Footer />
+
+      <SuccessModal
+        isOpen={successModal.isOpen}
+        onClose={() => setSuccessModal({ isOpen: false, email: "" })}
+        email={successModal.email}
+        message="Your quote request has been successfully submitted! Our team will review it and get back to you within 24 hours with a competitive quote."
+      />
 
       <style>{`
         @keyframes fadeSlideDown {

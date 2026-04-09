@@ -6,10 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:api": "node scripts/test-api.js",
+    "test:email": "node scripts/test-email.js",
+    "test:recaptcha": "node scripts/test-recaptcha.js",
+    "db:setup": "node scripts/setup-db.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.103.0",
     "next": "^16.2.2",
+    "nodemailer": "^8.0.5",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },

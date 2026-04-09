@@ -1,7 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/footer";
+import SuccessModal from "@/components/SuccessModal";
 import Link from "next/link";
 
 export default function ContactPage() {
@@ -12,10 +13,20 @@ export default function ContactPage() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [successModal, setSuccessModal] = useState({ isOpen: false, email: "" });
+  const [error, setError] = useState("");
   const [polSearch, setPolSearch] = useState("");
   const [podSearch, setPodSearch] = useState("");
   const [showPolDropdown, setShowPolDropdown] = useState(false);
   const [showPodDropdown, setShowPodDropdown] = useState(false);
+
+  // Load reCAPTCHA script
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = `https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`;
+    document.head.appendChild(script);
+    return () => document.head.removeChild(script);
+  }, []);
 
   const majorPorts = [
     "Singapore", "Shanghai", "Rotterdam", "Hamburg", "Dubai",
@@ -59,13 +70,46 @@ export default function ContactPage() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
     setLoading(true);
-    setTimeout(() => {
+
+    try {
+      // Get reCAPTCHA token
+      const token = await window.grecaptcha.execute(
+        process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY,
+        { action: "submit_contact" }
+      );
+
+      // Call API
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...formData, recaptchaToken: token }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        setError(data.message || "Failed to submit message");
+        setLoading(false);
+        return;
+      }
+
+      // Show success modal
+      setSuccessModal({ isOpen: true, email: formData.email });
+      setFormData({
+        name: "", email: "", phone: "", subject: "", pol: "", pod: "",
+        container: "", serviceType: "", cargoType: "", shipmentDate: "",
+        weight: "", shipper: "", consignee: "", specialRequirements: "", message: ""
+      });
       setLoading(false);
-      setSubmitted(true);
-    }, 1200);
+    } catch (err) {
+      console.error("Error:", err);
+      setError("An error occurred. Please try again.");
+      setLoading(false);
+    }
   };
 
   const contactInfo = [
@@ -319,6 +363,13 @@ export default function ContactPage() {
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="px-8 py-8 space-y-5" style={{ background: "#FAFEFF" }}>
+                  {/* Error message */}
+                  {error && (
+                    <div className="p-4 rounded-lg border" style={{ background: "rgba(229, 62, 62, 0.1)", borderColor: "#FC8181", color: "#C53030" }}>
+                      <p className="text-sm font-semibold">{error}</p>
+                    </div>
+                  )}
+
                   {/* Name + Email */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
@@ -692,6 +743,16 @@ export default function ContactPage() {
           </div>
         </div>
       </section>
+
+      {/* Success Modal */}
+      <SuccessModal 
+        isOpen={successModal.isOpen}
+        email={successModal.email}
+        onClose={() => {
+          setSuccessModal({ isOpen: false, email: "" });
+          setSubmitted(false);
+        }}
+      />
     </main>
     <Footer />
     </>
