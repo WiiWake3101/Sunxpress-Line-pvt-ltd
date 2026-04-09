@@ -258,7 +258,7 @@ export default function Footer() {
             <div className="lg:col-span-1">
               <a href="#" className="flex items-center gap-3 mb-5">
                 <img
-                  src="logo/logo.svg"
+                  src="/logo/logo.svg"
                   alt="Sun Xpress Line Logo"
                   className="h-14 w-auto object-contain"
                 />
