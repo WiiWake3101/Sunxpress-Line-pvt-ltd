@@ -168,7 +168,7 @@ export async function POST(request) {
       );
     }
 
-    // 10. Send confirmation emails (non-blocking)
+    // 10. Send confirmation emails (non-blocking but with error handling)
     Promise.all([
       sendQuoteConfirmationEmail({
         name: sanitized.name,
@@ -189,7 +189,10 @@ export async function POST(request) {
         container_type: sanitized.container,
         cargo_details: sanitized.cargo_details,
       }),
-    ]).catch(() => {});
+    ]).catch((err) => {
+      console.error('[QUOTE-API] 🚨 Email Promise failed:', err.message);
+      console.error('[QUOTE-API] Stack trace:', err.stack?.split('\n').slice(0, 3).join('\n'));
+    });
 
     // 11. Return success response
     const quoteId = data && Array.isArray(data) && data.length > 0 ? data[0].id : 'unknown';

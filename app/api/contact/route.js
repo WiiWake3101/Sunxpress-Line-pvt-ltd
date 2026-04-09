@@ -175,12 +175,13 @@ export async function POST(request) {
       );
     }
 
-    // 10. Send confirmation emails (non-blocking)
+    // 10. Send confirmation emails (non-blocking but with error handling)
     Promise.all([
       sendContactAcknowledgment({
         name: sanitized.name,
         email: sanitized.email,
         subject: sanitized.subject,
+        message: sanitized.message,
       }),
       sendAdminNotification({
         name: sanitized.name,
@@ -195,7 +196,10 @@ export async function POST(request) {
         cargo_type: sanitized.cargoType,
         message: sanitized.message,
       }),
-    ]).catch(() => {});
+    ]).catch((err) => {
+      console.error('[CONTACT-API] 🚨 Email Promise failed:', err.message);
+      console.error('[CONTACT-API] Stack trace:', err.stack?.split('\n').slice(0, 3).join('\n'));
+    });
 
     // 11. Return success response
     const messageId = data && Array.isArray(data) && data.length > 0 ? data[0].id : 'unknown';
