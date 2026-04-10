@@ -12,7 +12,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { supabaseServer } from '@/lib/supabase';
+import { supabaseClient } from '@/lib/supabase';
 import {
   validateQuoteForm,
   sanitizeFormData,
@@ -133,7 +133,7 @@ export async function POST(request) {
 
     // ── 9. Duplicate check (same email within 5 minutes) ──────────────────────
     // FIX: properly destructure { data, error } so DB errors aren't swallowed
-    const { data: recentData, error: recentError } = await supabaseServer
+    const { data: recentData, error: recentError } = await supabaseClient
       .from('quote_requests')
       .select('id, created_at')
       .eq('email', sanitized.email)
@@ -159,7 +159,7 @@ export async function POST(request) {
     // FIX: weight inserted as string — column is now varchar(100) after migration
     // FIX: phone uses cleanPhone (spaces stripped)
     // FIX: all values come from sanitized.* consistently
-    const { data, error } = await supabaseServer
+    const { data, error } = await supabaseClient
       .from('quote_requests')
       .insert([
         {

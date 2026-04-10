@@ -12,7 +12,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { supabaseServer } from '@/lib/supabase';
+import { supabaseClient } from '@/lib/supabase';
 import {
   validateContactForm,
   sanitizeFormData,
@@ -178,7 +178,7 @@ export async function POST(request) {
 
     // ── 10. Duplicate check (same email within 5 minutes) ─────────────────────
     // FIX: properly destructure so DB errors aren't silently swallowed
-    const { data: recentData, error: recentError } = await supabaseServer
+    const { data: recentData, error: recentError } = await supabaseClient
       .from('contact_messages')
       .select('id, created_at')
       .eq('email', sanitized.email)
@@ -202,7 +202,7 @@ export async function POST(request) {
     // ── 11. Insert into database ──────────────────────────────────────────────
     // Column names match contact_messages schema exactly.
     // All values sourced from sanitized.* — no raw formData bypass.
-    const { data, error } = await supabaseServer
+    const { data, error } = await supabaseClient
       .from('contact_messages')
       .insert([
         {
