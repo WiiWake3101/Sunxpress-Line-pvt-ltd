@@ -1,14 +1,7 @@
+"use client";
 import { useEffect, useRef, useState } from "react";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/footer";
-
-export async function generateMetadata() {
-  return {
-    title: "Shipping & Logistics Services - Sun Xpress Line",
-    description: "Comprehensive shipping services including ocean freight, bulk cargo, customs clearance, cargo insurance, and container services.",
-    keywords: "shipping services, ocean freight, bulk cargo, customs clearance, cargo insurance, container services, port logistics",
-  };
-}
 
 function useInView(threshold = 0.15) {
   const ref = useRef(null);
