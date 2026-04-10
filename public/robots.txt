@@ -1,0 +1,22 @@
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Disallow admin pages
+Disallow: /admin/
+
+# Disallow API routes
+Disallow: /api/
+
+# Specify sitemap
+Sitemap: https://sunxp.in/sitemap.xml
+
+# Crawl delay
+Crawl-delay: 1
+
+# Specific bot rules
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /

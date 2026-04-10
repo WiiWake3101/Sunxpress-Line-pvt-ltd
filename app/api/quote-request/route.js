@@ -1,6 +1,14 @@
 /**
  * API Route: POST /api/quote-request
  * Handles quote request submissions
+ *
+ * FIXES APPLIED:
+ *  1. Phone space stripped before insert (was failing valid_phone constraint)
+ *  2. weight inserted as string (column changed to varchar in migration)
+ *  3. cargo field correctly mapped to cargo_details
+ *  4. Duplicate-check error properly destructured — no silent swallow
+ *  5. Consistent use of sanitized.* for all fields
+ *  6. Optional chaining on insert result (no throw on null data)
  */
 
 import { NextResponse } from 'next/server';
@@ -15,7 +23,7 @@ import { checkRateLimit } from '@/lib/rateLimit';
 import { verifyRecaptcha } from '@/lib/recaptcha';
 import { sendQuoteConfirmationEmail, sendAdminNotification } from '@/lib/email';
 
-// Allowed service types & container types
+// Allowed service types & container types — must match front-end options exactly
 const ALLOWED_SERVICES = [
   'Ocean Freight',
   'Bulk Cargo',
@@ -38,15 +46,15 @@ const ALLOWED_CONTAINERS = [
 
 export async function POST(request) {
   try {
-    // 1. Get client IP for rate limiting
+    // ── 1. Client IP ──────────────────────────────────────────────────────────
     const clientIP = getClientIP(request);
 
-    // 2. Check rate limit (5 requests per hour per IP)
+    // ── 2. Rate limit (5 requests / IP / hour) ────────────────────────────────
     const rateLimit = checkRateLimit(
       clientIP,
       'quote-request',
-      parseInt(process.env.RATE_LIMIT_REQUESTS || 5),
-      parseInt(process.env.RATE_LIMIT_WINDOW_MINUTES || 60)
+      parseInt(process.env.RATE_LIMIT_REQUESTS || '5'),
+      parseInt(process.env.RATE_LIMIT_WINDOW_MINUTES || '60')
     );
 
     if (!rateLimit.allowed) {
@@ -60,24 +68,24 @@ export async function POST(request) {
       );
     }
 
-    // 3. Parse request body
+    // ── 3. Parse body ─────────────────────────────────────────────────────────
     const body = await request.json();
     const { recaptchaToken, ...formData } = body;
 
-    // 4. Verify reCAPTCHA
+    // ── 4. Verify reCAPTCHA ───────────────────────────────────────────────────
     const recaptchaResult = await verifyRecaptcha(recaptchaToken);
     if (!recaptchaResult.success) {
       return NextResponse.json(
         {
           success: false,
-          message: recaptchaResult.error,
+          message: recaptchaResult.error || 'reCAPTCHA verification failed.',
           errors: [],
         },
         { status: 400 }
       );
     }
 
-    // 5. Validate form data
+    // ── 5. Validate form data ─────────────────────────────────────────────────
     const validationErrors = validateQuoteForm(formData);
     if (validationErrors.length > 0) {
       return NextResponse.json(
@@ -90,7 +98,7 @@ export async function POST(request) {
       );
     }
 
-    // 6. Verify enum values
+    // ── 6. Enum guards ────────────────────────────────────────────────────────
     if (!verifyEnum(formData.service, ALLOWED_SERVICES)) {
       return NextResponse.json(
         {
@@ -107,116 +115,149 @@ export async function POST(request) {
         {
           success: false,
           message: 'Invalid container type',
-          errors: [{ field: 'container', message: 'Invalid container type' }],
+          errors: [{ field: 'container', message: 'Invalid container type selected' }],
         },
         { status: 400 }
       );
     }
 
-    // 7. Sanitize data
+    // ── 7. Sanitize ───────────────────────────────────────────────────────────
     const sanitized = sanitizeFormData(formData);
 
-    // 8. Check for duplicate submission (same email within 5 minutes)
-    const recentQuote = await supabaseServer
+    // ── 8. FIX: Strip whitespace from phone so it passes the DB constraint ────
+    // Front-end sends "+91 98765 43210" — constraint requires no internal spaces
+    // We store the clean version: "+919876543210"
+    const cleanPhone = sanitized.phone
+      ? sanitized.phone.replace(/\s+/g, '')
+      : null;
+
+    // ── 9. Duplicate check (same email within 5 minutes) ──────────────────────
+    // FIX: properly destructure { data, error } so DB errors aren't swallowed
+    const { data: recentData, error: recentError } = await supabaseServer
       .from('quote_requests')
       .select('id, created_at')
       .eq('email', sanitized.email)
       .gte('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString())
       .limit(1);
 
-    if (recentQuote.data && recentQuote.data.length > 0) {
+    if (recentError) {
+      console.error('[QUOTE-API] Duplicate check DB error:', recentError.message);
+      // Non-fatal: log and continue rather than blocking the user
+    } else if (recentData && recentData.length > 0) {
       return NextResponse.json(
         {
           success: false,
-          message: 'You recently submitted a request. Please wait before submitting again.',
+          message: 'You recently submitted a request. Please wait a few minutes before submitting again.',
           errors: [],
         },
         { status: 400 }
       );
     }
 
-    // 9. Insert into database
+    // ── 10. Insert into database ───────────────────────────────────────────────
+    // FIX: cargo_details mapped from sanitized.cargo (front-end key is "cargo")
+    // FIX: weight inserted as string — column is now varchar(100) after migration
+    // FIX: phone uses cleanPhone (spaces stripped)
+    // FIX: all values come from sanitized.* consistently
     const { data, error } = await supabaseServer
       .from('quote_requests')
       .insert([
         {
-          name: sanitized.name,
-          email: sanitized.email,
-          phone: sanitized.phone,
-          company: sanitized.company,
-          service_type: sanitized.service,
-          port_of_loading: sanitized.pol,
-          port_of_discharge: sanitized.pod,
-          container_type: sanitized.container,
-          cargo_details: sanitized.cargo_details,
-          weight: formData.weight || null,
-          status: 'pending',
-          ip_address: clientIP,
-          user_agent: request.headers.get('user-agent'),
+          name:                sanitized.name,
+          email:               sanitized.email,
+          phone:               cleanPhone,                           // FIX: stripped
+          company:             sanitized.company    || null,
+          service_type:        sanitized.service,
+          port_of_loading:     sanitized.pol,
+          port_of_discharge:   sanitized.pod,
+          container_type:      sanitized.container,
+          cargo_details:       sanitized.cargo_details              // FIX: mapped correctly
+                                 ?? sanitized.cargo                 //      fallback if sanitizer uses "cargo"
+                                 ?? null,
+          weight:              sanitized.weight     || null,         // FIX: from sanitized, not raw formData
+          status:              'pending',
+          ip_address:          clientIP,
+          user_agent:          request.headers.get('user-agent'),
         },
       ])
       .select();
 
-    if (error || !data || !Array.isArray(data) || data.length === 0) {
+    if (error) {
+      console.error('[QUOTE-API] Insert error:', error.message, error.details);
       return NextResponse.json(
         {
           success: false,
-          message: 'Failed to submit quote. Database error.',
+          message: 'Failed to submit quote. Please try again.',
           errors: [],
         },
         { status: 500 }
       );
     }
 
-    // 10. Send confirmation emails (BLOCKING - wait for completion)
+    // FIX: safe optional chaining — no throw if data is unexpectedly null
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      console.error('[QUOTE-API] Insert returned no data');
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Submission error. Please try again.',
+          errors: [],
+        },
+        { status: 500 }
+      );
+    }
+
+    // ── 11. Send confirmation emails ──────────────────────────────────────────
     try {
       await Promise.all([
         sendQuoteConfirmationEmail({
-          name: sanitized.name,
-          email: sanitized.email,
-          service: sanitized.service,
-          pol: sanitized.pol,
-          pod: sanitized.pod,
+          name:      sanitized.name,
+          email:     sanitized.email,
+          service:   sanitized.service,
+          pol:       sanitized.pol,
+          pod:       sanitized.pod,
           container: sanitized.container,
         }),
         sendAdminNotification({
-          name: sanitized.name,
-          email: sanitized.email,
-          phone: sanitized.phone,
-          company: sanitized.company,
-          service_type: sanitized.service,
-          port_of_loading: sanitized.pol,
-          port_of_discharge: sanitized.pod,
-          container_type: sanitized.container,
-          cargo_details: sanitized.cargo_details,
+          name:           sanitized.name,
+          email:          sanitized.email,
+          phone:          cleanPhone,
+          company:        sanitized.company,
+          service_type:   sanitized.service,
+          port_of_loading:    sanitized.pol,
+          port_of_discharge:  sanitized.pod,
+          container_type:     sanitized.container,
+          cargo_details:      sanitized.cargo_details ?? sanitized.cargo,
         }),
       ]);
       console.log('[QUOTE-API] ✅ All emails sent successfully');
     } catch (emailErr) {
+      // Non-fatal: quote is already saved, email failure just gets logged
       console.error('[QUOTE-API] 🚨 Email sending failed:', emailErr.message);
-      // Still return success because quote was saved to DB
     }
 
-    // 11. Return success response
-    const quoteId = data && Array.isArray(data) && data.length > 0 ? data[0].id : 'unknown';
-    
+    // ── 12. Success ───────────────────────────────────────────────────────────
+    const quoteId = data[0]?.id ?? 'unknown';
+
     return NextResponse.json(
       {
         success: true,
         message: 'Quote request submitted successfully! Check your email for confirmation.',
         data: {
-          id: quoteId,
-          email: sanitized.email,
+          id:     quoteId,
+          email:  sanitized.email,
           status: 'pending',
         },
       },
       { status: 201 }
     );
+
   } catch (error) {
+    console.error('[QUOTE-API] Unhandled error:', error.message);
     return NextResponse.json(
       {
         success: false,
-        message: 'An error occurred while processing your request.',
+        message: 'An unexpected error occurred. Please try again.',
         errors: [],
       },
       { status: 500 }
