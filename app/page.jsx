@@ -569,20 +569,29 @@ export default function Home() {
                     {/* Phone */}
                     <div>
                       <label className="block text-xs font-bold mb-2 tracking-wide" style={{ color: "#4A5568" }}>Phone</label>
-                      <div className="flex gap-2">
+                      <div className="flex rounded-xl overflow-hidden" style={{ border: `1.5px solid ${formErrors.phone ? "#E53E3E" : "#E2E8F0"}`, background: "#FAFBFC" }}>
 
                         {/* Country code picker */}
                         <div className="relative flex-shrink-0" ref={countryRef}>
                           <button
                             type="button"
                             onClick={() => setShowCountryDropdown((v) => !v)}
-                            className="h-full px-2.5 py-3.5 rounded-xl text-sm outline-none transition-all flex items-center gap-1.5"
+                            className="h-full px-2.5 py-3.5 text-sm outline-none transition-all flex items-center gap-1.5"
                             style={{
-                              border: `1.5px solid ${showCountryDropdown ? "#319795" : "#E2E8F0"}`,
-                              background: "#FAFBFC",
+                              border: "none",
+                              background: "transparent",
                               color: "#2D3748",
-                              boxShadow: showCountryDropdown ? "0 0 0 3px rgba(49,151,149,0.12)" : "none",
+                              boxShadow: "none",
                               minWidth: "88px",
+                              borderRight: `1px solid ${formErrors.phone ? "#E53E3E" : "#E2E8F0"}`,
+                            }}
+                            onFocus={(e) => {
+                              e.currentTarget.parentNode.parentNode.style.borderColor = formErrors.phone ? "#E53E3E" : "#319795";
+                              e.currentTarget.parentNode.parentNode.style.boxShadow = `0 0 0 3px rgba(${formErrors.phone ? "229,62,62" : "49,151,149"},0.12)`;
+                            }}
+                            onBlur={(e) => {
+                              e.currentTarget.parentNode.parentNode.style.borderColor = formErrors.phone ? "#E53E3E" : "#E2E8F0";
+                              e.currentTarget.parentNode.parentNode.style.boxShadow = "none";
                             }}
                           >
                             <span className="text-base leading-none">{selectedCountry.flag}</span>
@@ -658,10 +667,20 @@ export default function Home() {
                           onChange={handlePhoneInput}
                           placeholder="98765 43210"
                           maxLength={15}
-                          className="flex-1 px-4 py-3.5 text-sm rounded-xl outline-none transition-all"
-                          style={qInput("phone")}
-                          onFocus={qFocus("phone")}
-                          onBlur={qBlur("phone")}
+                          className="flex-1 px-4 py-3.5 text-sm outline-none transition-all"
+                          style={{
+                            background: "transparent",
+                            color: "#2D3748",
+                            border: "none",
+                          }}
+                          onFocus={(e) => {
+                            e.currentTarget.parentNode.style.borderColor = formErrors.phone ? "#E53E3E" : "#319795";
+                            e.currentTarget.parentNode.style.boxShadow = `0 0 0 3px rgba(${formErrors.phone ? "229,62,62" : "49,151,149"},0.12)`;
+                          }}
+                          onBlur={(e) => {
+                            e.currentTarget.parentNode.style.borderColor = formErrors.phone ? "#E53E3E" : "#E2E8F0";
+                            e.currentTarget.parentNode.style.boxShadow = "none";
+                          }}
                         />
                       </div>
 

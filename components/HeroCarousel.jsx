@@ -23,9 +23,8 @@ export default function HeroCarousel() {
   }
 
   return (
-    <div className="relative w-full" style={{ filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.45))" }}>
-      <div className="rounded-2xl overflow-hidden relative" style={{
-        aspectRatio: "16/10",
+    <div className="relative w-full overflow-hidden" style={{ filter: "drop-shadow(0 0 30px rgba(0,0,0,0.4)) drop-shadow(0 0 20px rgba(0,0,0,0.3))" }}>
+      <div className="carousel-container rounded-2xl overflow-hidden relative" style={{
         border: "1px solid rgba(160,233,229,0.25)",
         background: "rgba(255,255,255,0.06)",
         backdropFilter: "blur(20px)",
@@ -48,24 +47,24 @@ export default function HeroCarousel() {
                 e.target.parentNode.appendChild(el);
               }}
             />
-            <div className="absolute bottom-0 left-0 right-0 px-4 py-3"
+            <div className="absolute bottom-0 left-0 right-0 px-4 py-4 sm:py-6"
               style={{ background: "linear-gradient(transparent, rgba(13,31,60,0.85))" }}>
-              <p className="text-white text-xs font-semibold">{img.caption}</p>
+              <p className="text-white text-xs sm:text-sm font-semibold truncate">{img.caption}</p>
             </div>
           </div>
         ))}
         {/* Arrows */}
         <button onClick={() => goTo((active - 1 + CAROUSEL_IMAGES.length) % CAROUSEL_IMAGES.length)}
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center"
+          className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center hover:bg-white/25 transition-colors"
           style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.2)" }}>
-          <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+          <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
         <button onClick={() => goTo((active + 1) % CAROUSEL_IMAGES.length)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center"
+          className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center hover:bg-white/25 transition-colors"
           style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.2)" }}>
-          <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+          <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </button>
@@ -78,8 +77,8 @@ export default function HeroCarousel() {
         ))}
       </div>
       {/* Live badge */}
-      <div className="absolute -bottom-3 -left-3 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5"
-        style={{ background: "linear-gradient(135deg, #A0E9E5, #71D5D0)", color: "#1A365D", boxShadow: "0 6px 20px rgba(160,233,229,0.4)" }}>
+      <div className="hidden sm:flex absolute -bottom-0 left-3 px-3 py-2 rounded-lg text-xs font-bold items-center gap-1.5"
+        style={{ background: "linear-gradient(135deg, #A0E9E5, #71D5D0)", color: "#1A365D" }}>
         <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
         Live Port Operations
       </div>

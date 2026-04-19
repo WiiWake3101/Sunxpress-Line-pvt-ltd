@@ -260,7 +260,7 @@ export default function Footer() {
                 <img
                   src="/logo/logo.svg"
                   alt="Sun Xpress Line Logo"
-                  className="h-14 w-auto object-contain"
+                  className="h-12 sm:h-13 md:h-14 w-auto object-contain"
                 />
               </a>
               <p className="text-sm leading-relaxed mb-5" style={{ color: "#4A5568" }}>

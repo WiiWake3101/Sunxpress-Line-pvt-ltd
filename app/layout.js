@@ -16,7 +16,7 @@ export const metadata = {
   description: "Professional ocean freight, bulk cargo, and port logistics services with expertise in Tuticorin Port. Real-time tracking, customs clearance, and cargo insurance.",
   keywords: "logistics, shipping, ocean freight, bulk cargo, port logistics, Tuticorin, cargo insurance, customs clearance",
   author: "Sun Xpress Line",
-  viewport: "width=device-width, initial-scale=1",
+  metadataBase: new URL("https://sunxp.in"),
   robots: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
   openGraph: {
     title: "Sun Xpress Line - Global Logistics & Shipping",
@@ -40,6 +40,11 @@ export const metadata = {
     image: "/logo/og-image.png",
   },
   canonical: "https://sunxp.in",
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }) {

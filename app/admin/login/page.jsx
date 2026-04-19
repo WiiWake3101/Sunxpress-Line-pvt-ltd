@@ -53,7 +53,7 @@ export default function AdminLogin() {
               <img
                 src="/logo/logo.png"
                 alt="Sun Xpress Logo"
-                className="h-16 w-auto drop-shadow-lg"
+                className="h-12 sm:h-14 md:h-16 w-auto drop-shadow-lg"
               />
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-[#0D1F3C] to-[#437A96] bg-clip-text text-transparent mb-2">

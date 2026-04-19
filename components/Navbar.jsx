@@ -33,7 +33,7 @@ export default function Navbar() {
 
             {/* Logo */}
             <a href="/" className="flex items-center gap-3 flex-shrink-0">
-              <img src="/logo/logo.svg" alt="Sun Xpress Line Logo" className="h-14 w-auto object-contain" />
+              <img src="/logo/logo.svg" alt="Sun Xpress Line Logo" className="h-10 sm:h-12 md:h-14 w-auto object-contain" />
             </a>
 
             <div className="flex-1" />
