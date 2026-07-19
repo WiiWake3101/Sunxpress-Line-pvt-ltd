@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 
 const CAROUSEL_IMAGES = [
-  { src: "https://images.unsplash.com/photo-1578574494644-30c38b0ecf0f?w=1200&h=750&fit=crop", caption: "Tuticorin Deep-Water Port" },
-  { src: "https://images.unsplash.com/photo-1590659481751-4b7dc8b3da9c?w=1200&h=750&fit=crop", caption: "Bulk Cargo Operations" },
-  { src: "https://images.unsplash.com/photo-1537998016104-04e4b52a8a9b?w=1200&h=750&fit=crop", caption: "Container Logistics" },
-  { src: "https://images.unsplash.com/photo-1578574494644-30c38b0ecf0f?w=1200&h=750&fit=crop", caption: "Indian Ocean Trade Routes" },
+  { src: "/images/Voc_Port_Picture.jpg", caption: "Tuticorin Deep-Water Port" },
+  { src: "/images/istockphoto-2157040201-612x612.jpg", caption: "Bulk Cargo Operations" },
+  { src: "/images/aerial-view-cargo-ship-cargo-container-harbor.jpg", caption: "Container Logistics" },
+  { src: "/images/images.jpg", caption: "Indian Ocean Trade Routes" },
 ];
 
 export default function HeroCarousel() {
