@@ -320,7 +320,12 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-5">
             {services.map((s, i) => (
-              <Reveal key={s.title} delay={i * 80} direction="up"><ServiceCard service={s} /></Reveal>
+              <Reveal key={s.title} delay={i * 80} direction="up">
+                <ServiceCard 
+                  service={s} 
+                  id={`service-${s.title.toLowerCase().replace(/\s+/g, '-')}`} 
+                />
+              </Reveal>
             ))}
           </div>
         </div>
@@ -423,11 +428,11 @@ export default function Home() {
             <div className="hidden lg:block absolute top-1/4 left-0 right-0 h-1" style={{ background: "linear-gradient(90deg, #A0E9E5, transparent)", transform: "translateY(-50%)" }} />
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 lg:gap-3">
               {[
-                { num: "01", icon: "📋", title: "Book",        desc: "Submit your shipment details and get an instant quote. No hidden charges." },
-                { num: "02", icon: "📦", title: "Consolidate", desc: "Your cargo joins compatible shipments at our consolidation center." },
-                { num: "03", icon: "⚙️", title: "Load",        desc: "Expert handling & documentation. Your goods are secured and tracked." },
-                { num: "04", icon: "🚢", title: "Ship",        desc: "Your consolidated container departs on schedule via global shipping lanes." },
-                { num: "05", icon: "✅", title: "Deliver",     desc: "Real-time tracking until cargo reaches its final destination safely." },
+                { num: "01", icon: "📋", title: "Book",        desc: "Submit your shipment details and get an instant quote. No hidden charges.", link: "#contact", internal: true },
+                { num: "02", icon: "📦", title: "Consolidate", desc: "Your cargo joins compatible shipments at our consolidation center.", link: "/services#container-services", internal: false },
+                { num: "03", icon: "⚙️", title: "Load",        desc: "Expert handling & documentation. Your goods are secured and tracked.", link: "/services#port-logistics", internal: false },
+                { num: "04", icon: "🚢", title: "Ship",        desc: "Your consolidated container departs on schedule via global shipping lanes.", link: "/services#ocean-freight", internal: false },
+                { num: "05", icon: "✅", title: "Deliver",     desc: "Real-time tracking until cargo reaches its final destination safely.", link: "/services#ocean-freight", internal: false },
               ].map((step, i) => (
                 <Reveal key={step.num} delay={i * 80} direction="up">
                   <div className="relative group">
@@ -440,10 +445,28 @@ export default function Home() {
                       <div className="text-4xl mb-4">{step.icon}</div>
                       <h3 className="text-xl font-bold mb-3" style={{ color: "#0D1F3C" }}>{step.title}</h3>
                       <p className="text-sm" style={{ color: "#718096", lineHeight: "1.7" }}>{step.desc}</p>
-                      <div className="mt-5 flex items-center gap-2 text-xs font-semibold transition-opacity duration-300 opacity-0 group-hover:opacity-100" style={{ color: "#319795" }}>
+                      <a 
+                        href={step.link}
+                        className="mt-5 flex items-center gap-2 text-xs font-semibold transition-opacity duration-300 opacity-0 group-hover:opacity-100" 
+                        style={{ color: "#319795" }}
+                        onClick={(e) => {
+                          if (step.internal) {
+                            e.preventDefault();
+                            const target = document.querySelector(step.link);
+                            if (target) {
+                              target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              target.style.boxShadow = '0 0 0 4px rgba(49, 151, 149, 0.3)';
+                              setTimeout(() => {
+                                target.style.boxShadow = '';
+                              }, 2000);
+                            }
+                          }
+                          // For external links (step.internal === false), allow default navigation
+                        }}
+                      >
                         <span>Learn more</span>
                         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
-                      </div>
+                      </a>
                     </div>
                   </div>
                 </Reveal>

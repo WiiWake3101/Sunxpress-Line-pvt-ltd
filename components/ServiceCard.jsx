@@ -1,8 +1,8 @@
 import { useState } from "react";
-export default function ServiceCard({ service: s }) {
+export default function ServiceCard({ service: s, id }) {
   const [hovered, setHovered] = useState(false);
   return (
-    <div className="relative rounded-2xl p-7 overflow-hidden cursor-pointer h-full"
+    <div id={id} className="relative rounded-2xl p-7 overflow-hidden cursor-pointer h-full scroll-mt-24"
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
       style={{ background: hovered ? "linear-gradient(135deg, #1A365D, #2C5282)" : "white", border: hovered ? "none" : "1.5px solid #EDF2F7", boxShadow: hovered ? "0 20px 60px rgba(26,54,93,0.3)" : "0 2px 16px rgba(0,0,0,0.04)", transform: hovered ? "translateY(-6px)" : "translateY(0)", transition: "all 0.35s cubic-bezier(0.34,1.56,0.64,1)" }}>
       <div className="absolute top-0 right-0 w-40 h-40 rounded-full pointer-events-none" style={{ background: "rgba(160,233,229,0.1)", transform: "translate(30%,-30%)", opacity: hovered ? 1 : 0, transition: "opacity 0.3s ease" }} />

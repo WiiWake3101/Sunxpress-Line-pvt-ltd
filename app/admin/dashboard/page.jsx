@@ -6,6 +6,15 @@ import { supabaseClient } from '@/lib/supabase';
 import Footer from '@/components/footer';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
+const CALL_STATUS_OPTIONS = [
+  { value: 'not_called', label: 'Not Called Yet', badge: 'bg-gray-100 text-gray-700' },
+  { value: 'called_answered', label: 'Called - Answered', badge: 'bg-green-100 text-green-800' },
+  { value: 'called_no_answer', label: 'Called - No Answer', badge: 'bg-yellow-100 text-yellow-800' },
+  { value: 'left_voicemail', label: 'Left Voicemail', badge: 'bg-blue-100 text-blue-800' },
+  { value: 'follow_up_scheduled', label: 'Follow-up Scheduled', badge: 'bg-purple-100 text-purple-800' },
+  { value: 'completed', label: 'Completed', badge: 'bg-teal-100 text-teal-800' },
+];
+
 export default function AdminDashboard() {
   const router = useRouter();
 
@@ -26,6 +35,32 @@ export default function AdminDashboard() {
   const [statsView, setStatsView] = useState('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showPreferencesModal, setShowPreferencesModal] = useState(false);
+  const [preferences, setPreferences] = useState({
+    theme: 'light',
+    notifications: true,
+    autoRefresh: true,
+    tableRowsPerPage: 20,
+    showEmailInList: true,
+    compactView: false,
+  });
+  const [staff, setStaff] = useState([]);
+  const [showAddStaffModal, setShowAddStaffModal] = useState(false);
+  const [newStaff, setNewStaff] = useState({ name: '', email: '', password: '' });
+  const [followUps, setFollowUps] = useState([]);
+  const [newFollowUp, setNewFollowUp] = useState({ call_status: 'not_called', notes: '', follow_up_date: '' });
+
+  // Load preferences from localStorage
+  useEffect(() => {
+    const savedPreferences = localStorage.getItem('adminPreferences');
+    if (savedPreferences) {
+      try {
+        setPreferences(JSON.parse(savedPreferences));
+      } catch (e) {
+        console.error('Failed to load preferences:', e);
+      }
+    }
+  }, []);
 
   // Detect screen size
   useEffect(() => {
@@ -44,17 +79,45 @@ export default function AdminDashboard() {
       } else {
         setUser(session.user);
         fetchData();
+        fetchStaff();
+        fetchFollowUps();
       }
     };
 
     checkAuth();
   }, [router]);
 
-  // Auto-refresh every 30 seconds
+  // Silent refresh function (no loading screen)
+  const silentRefresh = async () => {
+    try {
+      const [quotesRes, contactsRes] = await Promise.all([
+        supabaseClient
+          .from('quote_requests')
+          .select('*')
+          .order('created_at', { ascending: false }),
+        supabaseClient
+          .from('contact_messages')
+          .select('*')
+          .order('created_at', { ascending: false }),
+      ]);
+
+      if (!quotesRes.error) {
+        setQuotes(quotesRes.data || []);
+      }
+      if (!contactsRes.error) {
+        setContacts(contactsRes.data || []);
+      }
+    } catch (err) {
+      console.error('Silent refresh error:', err);
+    }
+  };
+
+  // Auto-refresh every 30 seconds (silent, no loading screen)
   useEffect(() => {
-    const interval = setInterval(fetchData, 30000);
+    if (!preferences.autoRefresh) return;
+    const interval = setInterval(() => { silentRefresh(); fetchFollowUps(); }, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [preferences.autoRefresh]);
 
   // Fetch quotes & contacts
   const fetchData = async () => {
@@ -91,10 +154,127 @@ export default function AdminDashboard() {
     }
   };
 
+  // Fetch call/follow-up tracking history (admin sees all)
+  const fetchFollowUps = async () => {
+    try {
+      const { data, error } = await supabaseClient
+        .from('follow_ups')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setFollowUps(data || []);
+    } catch (err) {
+      console.error('Error fetching follow-ups:', err);
+    }
+  };
+
+  // Fetch staff members
+  const fetchStaff = async () => {
+    try {
+      const { data, error } = await supabaseClient
+        .from('office_staff')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setStaff(data || []);
+    } catch (err) {
+      console.error('Error fetching staff:', err);
+    }
+  };
+
+  // Add new staff member
+  const addStaff = async () => {
+    if (!newStaff.name || !newStaff.email || !newStaff.password) {
+      showToast('Please fill all fields', 'error');
+      return;
+    }
+
+    try {
+      // Create auth user
+      const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
+        email: newStaff.email,
+        password: newStaff.password,
+        email_confirm: true,
+      });
+
+      if (authError) throw authError;
+
+      // Add to office_staff table
+      const { error: staffError } = await supabaseClient
+        .from('office_staff')
+        .insert([{
+          name: newStaff.name,
+          email: newStaff.email,
+          is_active: true,
+        }]);
+
+      if (staffError) throw staffError;
+
+      showToast('Staff member added successfully');
+      setNewStaff({ name: '', email: '', password: '' });
+      setShowAddStaffModal(false);
+      fetchStaff();
+    } catch (err) {
+      showToast(err.message || 'Failed to add staff member', 'error');
+    }
+  };
+
+  // Toggle staff active status
+  const toggleStaffStatus = async (staffId, currentStatus) => {
+    try {
+      const { error } = await supabaseClient
+        .from('office_staff')
+        .update({ is_active: !currentStatus })
+        .eq('id', staffId);
+
+      if (error) throw error;
+
+      showToast('Staff status updated');
+      fetchStaff();
+    } catch (err) {
+      showToast('Failed to update staff status', 'error');
+    }
+  };
+
+  // Delete staff member
+  const deleteStaff = async (staffId, staffEmail) => {
+    if (!confirm('Are you sure you want to delete this staff member?')) return;
+
+    try {
+      // Delete from office_staff table
+      const { error } = await supabaseClient
+        .from('office_staff')
+        .delete()
+        .eq('id', staffId);
+
+      if (error) throw error;
+
+      showToast('Staff member deleted');
+      fetchStaff();
+    } catch (err) {
+      showToast('Failed to delete staff member', 'error');
+    }
+  };
+
   // Show toast notification
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
+    
+    // Browser notification if enabled
+    if (preferences.notifications && type === 'success' && 'Notification' in window) {
+      if (Notification.permission === 'granted') {
+        new Notification('Sun Xpress Admin', { body: message, icon: '/logo/logo.png' });
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            new Notification('Sun Xpress Admin', { body: message, icon: '/logo/logo.png' });
+          }
+        });
+      }
+    }
   };
 
   // Format relative date
@@ -148,6 +328,61 @@ export default function AdminDashboard() {
       showToast('Error updating read status', 'error');
       console.error('Error updating read status:', err);
     }
+  };
+
+  // Assign item to a staff member
+  const assignItem = async (table, id, staffId) => {
+    try {
+      const { error } = await supabaseClient
+        .from(table)
+        .update({ assigned_to: staffId || null })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      const staffMember = staff.find((s) => s.id === staffId);
+      showToast(staffId ? `Assigned to ${staffMember?.name || 'staff'}` : 'Unassigned', 'success');
+      fetchData();
+    } catch (err) {
+      showToast('Error assigning item', 'error');
+      console.error('Error assigning item:', err);
+    }
+  };
+
+  // Log a call/follow-up update for the selected item
+  const addFollowUp = async () => {
+    if (!selectedItem) return;
+    try {
+      const { error } = await supabaseClient.from('follow_ups').insert([{
+        reference_type: selectedItem.type,
+        reference_id: selectedItem.id,
+        call_status: newFollowUp.call_status,
+        notes: newFollowUp.notes || null,
+        follow_up_date: newFollowUp.follow_up_date || null,
+        created_by: user?.email || 'unknown',
+        created_by_name: user?.email || 'Admin',
+      }]);
+      if (error) throw error;
+      showToast('Follow-up logged successfully');
+      setNewFollowUp({ call_status: 'not_called', notes: '', follow_up_date: '' });
+      fetchFollowUps();
+    } catch (err) {
+      showToast('Failed to log follow-up', 'error');
+      console.error('Error adding follow-up:', err);
+    }
+  };
+
+  // Get follow-up history for a specific item (newest first)
+  const getItemFollowUps = (type, id) => {
+    return followUps
+      .filter(f => f.reference_type === type && f.reference_id === id)
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  };
+
+  // Get the latest follow-up entry for a specific item (for table badges)
+  const getLatestFollowUp = (type, id) => {
+    const items = getItemFollowUps(type, id);
+    return items.length > 0 ? items[0] : null;
   };
 
   // Save admin notes
@@ -250,8 +485,8 @@ export default function AdminDashboard() {
     return sorted;
   };
 
-  const filteredQuotes = sortData(filterData(quotes));
-  const filteredContacts = sortData(filterData(contacts));
+  const filteredQuotes = sortData(filterData(quotes)).slice(0, preferences.tableRowsPerPage);
+  const filteredContacts = sortData(filterData(contacts)).slice(0, preferences.tableRowsPerPage);
 
   if (loading) {
     return (
@@ -439,6 +674,17 @@ export default function AdminDashboard() {
               >
                 Profile
               </button>
+              <button
+                onClick={() => { setActiveTab('staff'); setMobileMenuOpen(false); }}
+                className={`w-full text-left px-4 py-3 rounded-lg font-semibold transition transform hover:scale-105 ${
+                  activeTab === 'staff'
+                    ? 'bg-gradient-to-r from-[#0D1F3C] to-[#437A96] text-white'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+                style={activeTab === 'staff' ? { animation: 'navButtonActive 0.6s ease-out' } : {}}
+              >
+                Office Staff ({staff.length})
+              </button>
             </div>
             {/* Logout Button at Bottom of Mobile Menu */}
             <button
@@ -471,25 +717,25 @@ export default function AdminDashboard() {
             <div className="space-y-8 pb-8">
               {/* Stats Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 border-l-4 border-l-blue-500 cursor-pointer hover:shadow-lg transition">
+                <div className={`bg-white rounded-lg shadow-md ${preferences.compactView ? 'p-3 sm:p-4' : 'p-4 sm:p-6'} border-l-4 border-l-blue-500 cursor-pointer hover:shadow-lg transition`}>
                   <p className="text-gray-600 text-xs sm:text-sm font-semibold">New Quotes</p>
                   <p className="text-3xl sm:text-4xl font-bold text-[#0D1F3C] mt-2">
                     {quotes.filter(q => q.status === 'new').length}
                   </p>
                 </div>
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 border-l-4 border-l-green-500 cursor-pointer hover:shadow-lg transition">
+                <div className={`bg-white rounded-lg shadow-md ${preferences.compactView ? 'p-3 sm:p-4' : 'p-4 sm:p-6'} border-l-4 border-l-green-500 cursor-pointer hover:shadow-lg transition`}>
                   <p className="text-gray-600 text-xs sm:text-sm font-semibold">New Messages</p>
                   <p className="text-3xl sm:text-4xl font-bold text-[#0D1F3C] mt-2">
                     {contacts.filter(c => c.status === 'new').length}
                   </p>
                 </div>
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 border-l-4 border-l-purple-500 cursor-pointer hover:shadow-lg transition">
+                <div className={`bg-white rounded-lg shadow-md ${preferences.compactView ? 'p-3 sm:p-4' : 'p-4 sm:p-6'} border-l-4 border-l-purple-500 cursor-pointer hover:shadow-lg transition`}>
                   <p className="text-gray-600 text-xs sm:text-sm font-semibold">Unread</p>
                   <p className="text-3xl sm:text-4xl font-bold text-[#0D1F3C] mt-2">
                     {quotes.filter(q => !q.is_read).length + contacts.filter(c => !c.is_read).length}
                   </p>
                 </div>
-                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 border-l-4 border-l-orange-500 cursor-pointer hover:shadow-lg transition">
+                <div className={`bg-white rounded-lg shadow-md ${preferences.compactView ? 'p-3 sm:p-4' : 'p-4 sm:p-6'} border-l-4 border-l-orange-500 cursor-pointer hover:shadow-lg transition`}>
                   <p className="text-gray-600 text-xs sm:text-sm font-semibold">Total Submissions</p>
                   <p className="text-3xl sm:text-4xl font-bold text-[#0D1F3C] mt-2">
                     {quotes.length + contacts.length}
@@ -723,12 +969,14 @@ export default function AdminDashboard() {
                           >
                             Name {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
                           </th>
-                          <th
-                            onClick={() => { setSortBy('email'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}
-                            className="px-6 py-4 text-left text-sm font-bold text-[#0D1F3C] cursor-pointer hover:bg-gray-200 transition"
-                          >
-                            Email {sortBy === 'email' && (sortOrder === 'asc' ? '↑' : '↓')}
-                          </th>
+                          {preferences.showEmailInList && (
+                            <th
+                              onClick={() => { setSortBy('email'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}
+                              className="px-6 py-4 text-left text-sm font-bold text-[#0D1F3C] cursor-pointer hover:bg-gray-200 transition"
+                            >
+                              Email {sortBy === 'email' && (sortOrder === 'asc' ? '↑' : '↓')}
+                            </th>
+                          )}
                           <th className="px-6 py-4 text-left text-sm font-bold text-[#0D1F3C]">Route</th>
                           <th
                             onClick={() => { setSortBy('status'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}
@@ -742,6 +990,8 @@ export default function AdminDashboard() {
                           >
                             Date {sortBy === 'created_at' && (sortOrder === 'asc' ? '↑' : '↓')}
                           </th>
+                          <th className="px-6 py-4 text-left text-sm font-bold text-[#0D1F3C]">Assigned To</th>
+                          <th className="px-6 py-4 text-left text-sm font-bold text-[#0D1F3C]">Call Status</th>
                           <th className="px-6 py-4 text-left text-sm font-bold text-[#0D1F3C]">Handled By</th>
                           <th className="px-6 py-4 text-left text-sm font-bold text-[#0D1F3C]">Actions</th>
                         </tr>
@@ -751,14 +1001,16 @@ export default function AdminDashboard() {
                           filteredQuotes.map((quote) => (
                             <tr
                               key={quote.id}
-                              onClick={() => { setSelectedItem({ ...quote, type: 'quote' }); setShowModal(true); }}
+                              onClick={() => { setSelectedItem({ ...quote, type: 'quote' }); setShowModal(true); setNewFollowUp({ call_status: 'not_called', notes: '', follow_up_date: '' }); }}
                               className={`border-b transition hover:bg-blue-50/50 cursor-pointer ${
                                 !quote.is_read ? 'bg-gradient-to-r from-blue-50 to-transparent border-l-4 border-l-[#437A96]' : ''
                               }`}
                             >
-                              <td className="px-6 py-4 text-sm text-gray-900 font-semibold">{quote.name}</td>
-                              <td className="px-6 py-4 text-sm text-gray-600">{quote.email}</td>
-                              <td className="px-6 py-4 text-sm text-gray-600">
+                              <td className={`${preferences.compactView ? 'px-4 py-2' : 'px-6 py-4'} text-sm text-gray-900 font-semibold`}>{quote.name}</td>
+                              {preferences.showEmailInList && (
+                                <td className={`${preferences.compactView ? 'px-4 py-2' : 'px-6 py-4'} text-sm text-gray-600`}>{quote.email}</td>
+                              )}
+                              <td className={`${preferences.compactView ? 'px-4 py-2' : 'px-6 py-4'} text-sm text-gray-600`}>
                                 {quote.port_of_loading} → {quote.port_of_discharge}
                               </td>
                               <td className="px-6 py-4 text-sm">
@@ -776,6 +1028,29 @@ export default function AdminDashboard() {
                               </td>
                               <td className="px-6 py-4 text-sm text-gray-600">
                                 {getRelativeDate(quote.created_at)}
+                              </td>
+                              <td className="px-6 py-4 text-sm" onClick={(e) => e.stopPropagation()}>
+                                <select
+                                  value={quote.assigned_to || ''}
+                                  onChange={(e) => assignItem('quote_requests', quote.id, e.target.value || null)}
+                                  className="px-3 py-1 text-xs font-semibold border-2 border-gray-200 rounded bg-white text-[#0D1F3C] hover:border-[#A0E9E5] transition"
+                                >
+                                  <option value="">Unassigned</option>
+                                  {staff.filter(s => s.is_active).map((member) => (
+                                    <option key={member.id} value={member.id}>{member.name}</option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="px-6 py-4 text-sm">
+                                {(() => {
+                                  const latest = getLatestFollowUp('quote', quote.id);
+                                  const opt = CALL_STATUS_OPTIONS.find(o => o.value === (latest?.call_status || 'not_called'));
+                                  return (
+                                    <span className={`px-3 py-1 text-xs font-bold rounded-full ${opt?.badge || 'bg-gray-100 text-gray-700'}`}>
+                                      {opt?.label || 'Not Called Yet'}
+                                    </span>
+                                  );
+                                })()}
                               </td>
                               <td className="px-6 py-4 text-sm">
                                 {quote.handled_by ? (
@@ -798,7 +1073,7 @@ export default function AdminDashboard() {
                           ))
                         ) : (
                           <tr>
-                            <td colSpan="7" className="px-6 py-8 text-center">
+                            <td colSpan={preferences.showEmailInList ? "9" : "8"} className="px-6 py-8 text-center">
                               <p className="text-gray-500 font-medium">No quotes found</p>
                               <button
                                 onClick={() => {
@@ -830,12 +1105,14 @@ export default function AdminDashboard() {
                           >
                             Name {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
                           </th>
-                          <th
-                            onClick={() => { setSortBy('email'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}
-                            className="px-6 py-4 text-left text-sm font-bold text-[#0D1F3C] cursor-pointer hover:bg-gray-200 transition"
-                          >
-                            Email {sortBy === 'email' && (sortOrder === 'asc' ? '↑' : '↓')}
-                          </th>
+                          {preferences.showEmailInList && (
+                            <th
+                              onClick={() => { setSortBy('email'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}
+                              className="px-6 py-4 text-left text-sm font-bold text-[#0D1F3C] cursor-pointer hover:bg-gray-200 transition"
+                            >
+                              Email {sortBy === 'email' && (sortOrder === 'asc' ? '↑' : '↓')}
+                            </th>
+                          )}
                           <th className="px-6 py-4 text-left text-sm font-bold text-[#0D1F3C]">Subject</th>
                           <th
                             onClick={() => { setSortBy('status'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}
@@ -849,6 +1126,8 @@ export default function AdminDashboard() {
                           >
                             Date {sortBy === 'created_at' && (sortOrder === 'asc' ? '↑' : '↓')}
                           </th>
+                          <th className="px-6 py-4 text-left text-sm font-bold text-[#0D1F3C]">Assigned To</th>
+                          <th className="px-6 py-4 text-left text-sm font-bold text-[#0D1F3C]">Call Status</th>
                           <th className="px-6 py-4 text-left text-sm font-bold text-[#0D1F3C]">Handled By</th>
                           <th className="px-6 py-4 text-left text-sm font-bold text-[#0D1F3C]">Actions</th>
                         </tr>
@@ -858,14 +1137,16 @@ export default function AdminDashboard() {
                           filteredContacts.map((contact) => (
                             <tr
                               key={contact.id}
-                              onClick={() => { setSelectedItem({ ...contact, type: 'contact' }); setShowModal(true); }}
+                              onClick={() => { setSelectedItem({ ...contact, type: 'contact' }); setShowModal(true); setNewFollowUp({ call_status: 'not_called', notes: '', follow_up_date: '' }); }}
                               className={`border-b transition hover:bg-green-50/50 cursor-pointer ${
                                 !contact.is_read ? 'bg-gradient-to-r from-green-50 to-transparent border-l-4 border-l-[#319795]' : ''
                               }`}
                             >
-                              <td className="px-6 py-4 text-sm text-gray-900 font-semibold">{contact.name}</td>
-                              <td className="px-6 py-4 text-sm text-gray-600">{contact.email}</td>
-                              <td className="px-6 py-4 text-sm text-gray-600">{contact.subject || 'General Inquiry'}</td>
+                              <td className={`${preferences.compactView ? 'px-4 py-2' : 'px-6 py-4'} text-sm text-gray-900 font-semibold`}>{contact.name}</td>
+                              {preferences.showEmailInList && (
+                                <td className={`${preferences.compactView ? 'px-4 py-2' : 'px-6 py-4'} text-sm text-gray-600`}>{contact.email}</td>
+                              )}
+                              <td className={`${preferences.compactView ? 'px-4 py-2' : 'px-6 py-4'} text-sm text-gray-600`}>{contact.subject || 'General Inquiry'}</td>
                               <td className="px-6 py-4 text-sm">
                                 <select
                                   onClick={(e) => e.stopPropagation()}
@@ -881,6 +1162,29 @@ export default function AdminDashboard() {
                               </td>
                               <td className="px-6 py-4 text-sm text-gray-600">
                                 {getRelativeDate(contact.created_at)}
+                              </td>
+                              <td className="px-6 py-4 text-sm" onClick={(e) => e.stopPropagation()}>
+                                <select
+                                  value={contact.assigned_to || ''}
+                                  onChange={(e) => assignItem('contact_messages', contact.id, e.target.value || null)}
+                                  className="px-3 py-1 text-xs font-semibold border-2 border-gray-200 rounded bg-white text-[#0D1F3C] hover:border-[#A0E9E5] transition"
+                                >
+                                  <option value="">Unassigned</option>
+                                  {staff.filter(s => s.is_active).map((member) => (
+                                    <option key={member.id} value={member.id}>{member.name}</option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="px-6 py-4 text-sm">
+                                {(() => {
+                                  const latest = getLatestFollowUp('contact', contact.id);
+                                  const opt = CALL_STATUS_OPTIONS.find(o => o.value === (latest?.call_status || 'not_called'));
+                                  return (
+                                    <span className={`px-3 py-1 text-xs font-bold rounded-full ${opt?.badge || 'bg-gray-100 text-gray-700'}`}>
+                                      {opt?.label || 'Not Called Yet'}
+                                    </span>
+                                  );
+                                })()}
                               </td>
                               <td className="px-6 py-4 text-sm">
                                 {contact.handled_by ? (
@@ -903,7 +1207,7 @@ export default function AdminDashboard() {
                           ))
                         ) : (
                           <tr>
-                            <td colSpan="7" className="px-6 py-8 text-center">
+                            <td colSpan={preferences.showEmailInList ? "9" : "8"} className="px-6 py-8 text-center">
                               <p className="text-gray-500 font-medium">No messages found</p>
                               <button
                                 onClick={() => {
@@ -1047,8 +1351,25 @@ export default function AdminDashboard() {
                   <h3 className="text-lg font-bold text-[#0D1F3C] mb-4 border-b pb-3">⚙️ Preferences</h3>
                   <div className="space-y-3">
                     <p className="text-gray-700 text-sm">Customize your admin dashboard experience.</p>
-                    <button className="w-full px-4 py-2 bg-[#319795] hover:bg-[#267472] text-white rounded-lg font-semibold transition">
-                      View Settings
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-600">Auto-refresh</span>
+                        <span className="font-semibold text-[#319795]">{preferences.autoRefresh ? 'ON' : 'OFF'}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-600">Notifications</span>
+                        <span className="font-semibold text-[#319795]">{preferences.notifications ? 'ON' : 'OFF'}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-600">View Mode</span>
+                        <span className="font-semibold text-[#319795]">{preferences.compactView ? 'Compact' : 'Normal'}</span>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => setShowPreferencesModal(true)}
+                      className="w-full px-4 py-2 bg-[#319795] hover:bg-[#267472] text-white rounded-lg font-semibold transition"
+                    >
+                      Manage Settings
                     </button>
                   </div>
                 </div>
@@ -1056,8 +1377,393 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {/* Office Staff Tab */}
+          {activeTab === 'staff' && (
+            <div className="space-y-6">
+              {/* Header with Add Button */}
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-black" style={{ color: '#0D1F3C' }}>Office Staff Management</h2>
+                  <p className="text-gray-600 text-sm mt-1">Manage staff members and their assignments</p>
+                </div>
+                <button
+                  onClick={() => setShowAddStaffModal(true)}
+                  className="px-4 py-2 rounded-lg font-bold text-white transition-all duration-200 hover:shadow-lg"
+                  style={{ background: 'linear-gradient(135deg, #A0E9E5, #71D5D0)' }}
+                >
+                  + Add Staff
+                </button>
+              </div>
+
+              {/* Staff Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {staff.map((member) => (
+                  <div key={member.id} className="bg-white rounded-lg shadow-md border border-gray-100 p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gradient-to-br from-[#A0E9E5] to-[#71D5D0] rounded-full flex items-center justify-center text-xl font-bold text-white">
+                          {member.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-gray-900">{member.name}</h3>
+                          <p className="text-xs text-gray-500">{member.email}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2 mb-4">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Status:</span>
+                        <span className={`font-semibold ${member.is_active ? 'text-green-600' : 'text-red-600'}`}>
+                          {member.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Assigned Quotes:</span>
+                        <span className="font-semibold text-blue-600">
+                          {quotes.filter(q => q.assigned_to === member.id).length}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Assigned Messages:</span>
+                        <span className="font-semibold text-green-600">
+                          {contacts.filter(c => c.assigned_to === member.id).length}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Joined:</span>
+                        <span className="text-gray-900">{new Date(member.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => toggleStaffStatus(member.id, member.is_active)}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition ${
+                          member.is_active
+                            ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                            : 'bg-green-100 text-green-700 hover:bg-green-200'
+                        }`}
+                      >
+                        {member.is_active ? 'Deactivate' : 'Activate'}
+                      </button>
+                      <button
+                        onClick={() => deleteStaff(member.id, member.email)}
+                        className="px-3 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg text-sm font-semibold transition"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {staff.length === 0 && (
+                <div className="bg-white rounded-lg shadow-md border border-gray-100 p-12 text-center">
+                  <div className="text-6xl mb-4">👥</div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">No staff members yet</h3>
+                  <p className="text-gray-600 mb-6">Add your first office staff member to start assigning queries</p>
+                  <button
+                    onClick={() => setShowAddStaffModal(true)}
+                    className="px-6 py-3 rounded-lg font-bold text-white transition-all duration-200 hover:shadow-lg"
+                    style={{ background: 'linear-gradient(135deg, #A0E9E5, #71D5D0)' }}
+                  >
+                    + Add First Staff Member
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       </div>
+
+      {/* Add Staff Modal */}
+      {showAddStaffModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(26, 54, 93, 0.6)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setShowAddStaffModal(false)}
+        >
+          <div
+            className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-black" style={{ color: '#0D1F3C' }}>Add Office Staff</h2>
+              <button
+                onClick={() => setShowAddStaffModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
+                <input
+                  type="text"
+                  value={newStaff.name}
+                  onChange={(e) => setNewStaff({...newStaff, name: e.target.value})}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#319795] focus:outline-none transition"
+                  placeholder="John Doe"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
+                <input
+                  type="email"
+                  value={newStaff.email}
+                  onChange={(e) => setNewStaff({...newStaff, email: e.target.value})}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#319795] focus:outline-none transition"
+                  placeholder="john@sunxpressline.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+                <input
+                  type="password"
+                  value={newStaff.password}
+                  onChange={(e) => setNewStaff({...newStaff, password: e.target.value})}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#319795] focus:outline-none transition"
+                  placeholder="Minimum 8 characters"
+                />
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowAddStaffModal(false)}
+                  className="flex-1 px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={addStaff}
+                  className="flex-1 px-4 py-3 rounded-lg font-bold text-white transition-all duration-200 hover:shadow-lg"
+                  style={{ background: 'linear-gradient(135deg, #A0E9E5, #71D5D0)' }}
+                >
+                  Add Staff
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preferences Modal */}
+      {showPreferencesModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ animation: 'fadeInScale 0.4s ease-out', backgroundColor: 'rgba(26, 54, 93, 0.6)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setShowPreferencesModal(false)}
+        >
+          <div
+            className="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            style={{ animation: 'modalSlideIn 0.5s ease-out' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div
+              className="flex-shrink-0 px-6 py-5 flex items-center justify-between"
+              style={{ background: 'linear-gradient(135deg, #437A96 0%, #1A365D 100%)' }}
+            >
+              <div>
+                <h2 className="text-2xl font-bold text-white tracking-wide">⚙️ Dashboard Preferences</h2>
+                <p className="text-xs mt-1" style={{ color: '#A0E9E5' }}>Customize your admin experience</p>
+              </div>
+              <button
+                onClick={() => setShowPreferencesModal(false)}
+                className="w-10 h-10 flex items-center justify-center rounded-full transition-all duration-200 hover:bg-white/20 text-white"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Accent Line */}
+            <div className="h-1 flex-shrink-0" style={{ background: 'linear-gradient(90deg, #B2F5EA 0%, #319795 50%, #2C5282 100%)' }} />
+
+            {/* Scrollable Content */}
+            <div className="overflow-y-auto flex-1 px-8 py-6 space-y-6">
+              
+              {/* Display Preferences */}
+              <div>
+                <h3 className="text-lg font-bold mb-4" style={{ color: '#1A365D' }}>🎨 Display Settings</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-semibold text-gray-900 text-sm">Compact View</p>
+                      <p className="text-xs text-gray-600 mt-1">Show more items with reduced spacing</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={preferences.compactView}
+                        onChange={(e) => setPreferences({...preferences, compactView: e.target.checked})}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#A0E9E5]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#319795]"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-semibold text-gray-900 text-sm">Show Email in Lists</p>
+                      <p className="text-xs text-gray-600 mt-1">Display email addresses in table view</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={preferences.showEmailInList}
+                        onChange={(e) => setPreferences({...preferences, showEmailInList: e.target.checked})}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#A0E9E5]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#319795]"></div>
+                    </label>
+                  </div>
+
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <label className="block">
+                      <p className="font-semibold text-gray-900 text-sm mb-2">Table Rows Per Page</p>
+                      <p className="text-xs text-gray-600 mb-3">Number of items to display: {preferences.tableRowsPerPage}</p>
+                      <input
+                        type="range"
+                        min="10"
+                        max="50"
+                        step="5"
+                        value={preferences.tableRowsPerPage}
+                        onChange={(e) => setPreferences({...preferences, tableRowsPerPage: parseInt(e.target.value)})}
+                        className="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-[#319795]"
+                      />
+                      <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>10</span>
+                        <span>50</span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="h-px" style={{ background: '#EBF8FF' }} />
+
+              {/* Notification Preferences */}
+              <div>
+                <h3 className="text-lg font-bold mb-4" style={{ color: '#1A365D' }}>🔔 Notifications</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-semibold text-gray-900 text-sm">Enable Notifications</p>
+                      <p className="text-xs text-gray-600 mt-1">Get alerts for new submissions</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={preferences.notifications}
+                        onChange={(e) => setPreferences({...preferences, notifications: e.target.checked})}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#A0E9E5]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#319795]"></div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="h-px" style={{ background: '#EBF8FF' }} />
+
+              {/* Auto-refresh Preferences */}
+              <div>
+                <h3 className="text-lg font-bold mb-4" style={{ color: '#1A365D' }}>🔄 Auto-Refresh</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-semibold text-gray-900 text-sm">Enable Auto-Refresh</p>
+                      <p className="text-xs text-gray-600 mt-1">Automatically refresh data periodically</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={preferences.autoRefresh}
+                        onChange={(e) => setPreferences({...preferences, autoRefresh: e.target.checked})}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#A0E9E5]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#319795]"></div>
+                    </label>
+                  </div>
+
+                  {preferences.autoRefresh && (
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <p className="text-xs text-gray-600">
+                        <span className="inline-flex items-center gap-2">
+                          <svg className="w-4 h-4 text-[#319795]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Data refreshes silently every 30 seconds in the background
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="h-px" style={{ background: '#EBF8FF' }} />
+
+              {/* Info Banner */}
+              <div className="p-4 bg-blue-50 border-l-4 border-blue-500 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <span className="text-xl">💡</span>
+                  <div>
+                    <p className="text-sm font-semibold text-blue-900">Preferences are saved locally</p>
+                    <p className="text-xs text-blue-700 mt-1">Your settings are stored in your browser and will persist across sessions.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div
+              className="flex-shrink-0 px-6 py-4 flex justify-between gap-3 border-t"
+              style={{ borderColor: '#E2E8F0', background: '#F0FAFA' }}
+            >
+              <button
+                onClick={() => {
+                  // Reset to defaults
+                  setPreferences({
+                    theme: 'light',
+                    notifications: true,
+                    autoRefresh: true,
+                    tableRowsPerPage: 20,
+                    showEmailInList: true,
+                    compactView: false,
+                  });
+                  showToast('Preferences reset to default', 'success');
+                }}
+                className="px-6 py-2 text-sm font-semibold rounded-lg transition-all duration-200 hover:bg-gray-200"
+                style={{ background: '#E2E8F0', color: '#1A365D' }}
+              >
+                Reset to Default
+              </button>
+              <button
+                onClick={() => {
+                  // Save preferences to localStorage
+                  localStorage.setItem('adminPreferences', JSON.stringify(preferences));
+                  showToast('Preferences saved successfully', 'success');
+                  setShowPreferencesModal(false);
+                }}
+                className="px-6 py-2 text-sm font-semibold text-white rounded-lg transition-all duration-200 hover:opacity-90 hover:shadow-md"
+                style={{ background: 'linear-gradient(135deg, #437A96 0%, #1A365D 100%)' }}
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Detail Modal */}
       {showModal && selectedItem && (
@@ -1175,7 +1881,7 @@ export default function AdminDashboard() {
               <div className="h-px" style={{ background: '#EBF8FF' }} />
 
               {/* Status & Tracking */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <div>
                   <p className="text-gray-600 text-xs font-semibold uppercase tracking-wide mb-2">Status</p>
                   <select
@@ -1209,6 +1915,24 @@ export default function AdminDashboard() {
                   </button>
                 </div>
                 <div>
+                  <p className="text-gray-600 text-xs font-semibold uppercase tracking-wide mb-2">Assigned To</p>
+                  <select
+                    value={selectedItem.assigned_to || ''}
+                    onChange={(e) => {
+                      const table = selectedItem.type === 'quote' ? 'quote_requests' : 'contact_messages';
+                      assignItem(table, selectedItem.id, e.target.value || null);
+                      setSelectedItem({ ...selectedItem, assigned_to: e.target.value || null });
+                    }}
+                    className="w-full px-3 py-2 border-2 rounded-lg font-semibold transition text-sm"
+                    style={{ borderColor: '#A0E9E5', color: '#1A365D' }}
+                  >
+                    <option value="">Unassigned</option>
+                    {staff.filter(s => s.is_active).map((member) => (
+                      <option key={member.id} value={member.id}>{member.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
                   <p className="text-gray-600 text-xs font-semibold uppercase tracking-wide mb-2">Handled By</p>
                   <div className="px-3 py-2 bg-gray-100 rounded-lg">
                     <p className="font-medium text-sm truncate" style={{ color: selectedItem.handled_by ? '#1A365D' : '#9CA3AF' }}>
@@ -1226,10 +1950,78 @@ export default function AdminDashboard() {
                 <textarea
                   value={adminNotes[selectedItem.id] || selectedItem.admin_notes || ''}
                   onChange={(e) => setAdminNotes({ ...adminNotes, [selectedItem.id]: e.target.value })}
-                  className="w-full px-4 py-3 border-2 rounded-lg text-sm resize-none focus:outline-none transition"
-                  style={{ borderColor: '#A0E9E5', minHeight: '120px' }}
+                  className="w-full px-4 py-3 border-2 rounded-lg text-sm resize-none focus:outline-none transition bg-white"
+                  style={{ borderColor: '#A0E9E5', minHeight: '120px', color: '#1A365D' }}
                   placeholder="Add internal notes, follow-up items, or important observations..."
                 />
+              </div>
+
+              <div className="h-px" style={{ background: '#EBF8FF' }} />
+
+              {/* Call & Follow-Up Tracking */}
+              <div>
+                <h3 className="text-lg font-bold mb-4" style={{ color: '#1A365D' }}>Call & Follow-Up Tracking</h3>
+
+                {/* History */}
+                <div className="space-y-2 max-h-56 overflow-y-auto mb-4">
+                  {getItemFollowUps(selectedItem.type, selectedItem.id).length > 0 ? (
+                    getItemFollowUps(selectedItem.type, selectedItem.id).map((entry) => {
+                      const opt = CALL_STATUS_OPTIONS.find(o => o.value === entry.call_status);
+                      return (
+                        <div key={entry.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${opt?.badge || 'bg-gray-100 text-gray-700'}`}>
+                              {opt?.label || entry.call_status}
+                            </span>
+                            <span className="text-xs text-gray-400">{getRelativeDate(entry.created_at)}</span>
+                          </div>
+                          {entry.notes && <p className="text-sm text-gray-700 mt-1">{entry.notes}</p>}
+                          {entry.follow_up_date && (
+                            <p className="text-xs text-gray-500 mt-1">Follow-up on: {new Date(entry.follow_up_date).toLocaleDateString()}</p>
+                          )}
+                          <p className="text-xs text-gray-400 mt-1">by {entry.created_by_name || entry.created_by}</p>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm text-gray-400 italic">No follow-up history yet</p>
+                  )}
+                </div>
+
+                {/* Add New Entry */}
+                <div className="p-4 bg-gray-50 rounded-lg space-y-3">
+                  <select
+                    value={newFollowUp.call_status}
+                    onChange={(e) => setNewFollowUp({ ...newFollowUp, call_status: e.target.value })}
+                    className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm bg-white text-gray-900 focus:border-[#A0E9E5] focus:outline-none"
+                  >
+                    {CALL_STATUS_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  <textarea
+                    value={newFollowUp.notes}
+                    onChange={(e) => setNewFollowUp({ ...newFollowUp, notes: e.target.value })}
+                    placeholder="Add notes about the call or follow-up..."
+                    className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm resize-none bg-white text-gray-900 placeholder:text-gray-400 focus:border-[#A0E9E5] focus:outline-none"
+                    rows={2}
+                  />
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="date"
+                      value={newFollowUp.follow_up_date}
+                      onChange={(e) => setNewFollowUp({ ...newFollowUp, follow_up_date: e.target.value })}
+                      className="flex-1 px-3 py-2 border-2 border-gray-200 rounded-lg text-sm bg-white text-gray-900 focus:border-[#A0E9E5] focus:outline-none"
+                    />
+                    <button
+                      onClick={addFollowUp}
+                      className="px-4 py-2 rounded-lg text-sm font-semibold text-white transition"
+                      style={{ background: 'linear-gradient(135deg, #319795 0%, #267472 100%)' }}
+                    >
+                      Log Update
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 

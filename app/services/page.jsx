@@ -136,6 +136,25 @@ const services = [
 export default function ServicesPage() {
   const [active, setActive] = useState(null);
 
+  // Handle smooth scroll to hash on page load
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash) {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        const target = document.querySelector(hash);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Add highlight effect
+          target.style.boxShadow = '0 0 0 4px rgba(49, 151, 149, 0.3)';
+          setTimeout(() => {
+            target.style.boxShadow = '';
+          }, 2000);
+        }
+      }, 300);
+    }
+  }, []);
+
   return (
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
       <Navbar />
@@ -179,7 +198,7 @@ export default function ServicesPage() {
       {/* ── SERVICE BLOCKS ───────────────────────────── */}
       <div className="bg-white">
         {services.map((s, i) => (
-          <section key={s.id} id={s.id} className={`py-24 ${i % 2 !== 0 ? "" : ""}`} style={{ background: i % 2 === 0 ? "white" : "#F8FAFC" }}>
+          <section key={s.id} id={s.id} className={`py-24 scroll-mt-24 ${i % 2 !== 0 ? "" : ""}`} style={{ background: i % 2 === 0 ? "white" : "#F8FAFC" }}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className={`flex flex-col lg:flex-row items-center gap-16 ${i % 2 !== 0 ? "lg:flex-row-reverse" : ""}`}>
 
